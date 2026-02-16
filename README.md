@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎓 eSkooly Pro - Advanced School Management System
 
-## Getting Started
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma)](https://prisma.io/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-First, run the development server:
+A high-performance, production-ready School Management System built with **Next.js 15**, **Prisma 7**, and **Recharts**. Inspired by the premium eSkooly dashboard, this application provides a centralized hub for managing students, employees, classes, curricula, and financial operations with real-time analytics.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+![Dashboard Preview](https://via.placeholder.com/1200x600?text=Premium+School+Management+Dashboard)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Key Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **📊 Dynamic Dashboard**: Real-time stats cards, performance charts (Expenses vs Income), and interactive widgets for daily operations.
+- **🙋 Student Directory**: Comprehensive student lifecycle management including admissions, attendance, and guardian details.
+- **👨‍🏫 Staff Management**: Employee directory with designation tracking, department grouping, and payroll insights.
+- **🏛️ Academic Infrastructure**: Manage classes, sections, subjects, and curriculum assignments with ease.
+- **💰 Financial Control**: Automated fee structure generation and collection tracking with visual progress indicators.
+- **📝 Examination Hub**: Schedule terms, class tests, and quizzes. Track performance metrics across different classes.
+- **⚙️ Deep Integration**: Built on **Prisma 7** with a robust driver adapter for maximum SQLite performance.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠️ Tech Stack
 
-## Learn More
+- **Frontend**: Next.js 15 (App Router), React, Tailwind CSS
+- **Database**: SQLite (via Prisma 7 & `@prisma/adapter-better-sqlite3`)
+- **State & Logic**: Zustand, server actions, and server components for optimal data fetching.
+- **Visuals**: Recharts for data visualization, Lucide React for iconography.
+- **Styling**: Modern, premium CSS with a focus on high-fidelity dashboard aesthetics (glassmorphism, vibrant palettes).
 
-To learn more about Next.js, take a look at the following resources:
+## 🚦 Getting Started
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Prerequisites
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Node.js 20+
+- npm or yarn
 
-## Deploy on Vercel
+### Installation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/yusufdupsc1/school-management-system.git
+   cd school-management-system
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Database Setup**:
+   ```bash
+   # Sync schema and generate client
+   npx prisma db push
+   
+   # Populate with realistic demo data (160+ students, employees, etc.)
+   npx npm run db:seed
+   ```
+
+4. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
+
+5. **Access the application**:
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   **Admin Credentials**: `admin@eskooly.com` / `admin123`
+
+## 📈 Roadmap (Next Modules)
+
+- [ ] **Billing Automation**: Automated invoice generation based on fee structures.
+- [ ] **SMS/Email Gateway**: Real-time notifications for parents on attendance and fee status.
+- [ ] **Live Class Integration**: WebRTC powered virtual classrooms.
+- [ ] **Report Card Generator**: Export professional grade sheets to PDF.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request for any feature additions or fixes.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+*Built with passion for the education sector. Focused on performance, aesthetics, and user experience.*
