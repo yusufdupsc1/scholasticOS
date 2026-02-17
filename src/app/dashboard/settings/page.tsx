@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Building, Mail, Phone, MapPin, Calendar, Globe, Pencil } from "lucide-react";
+import { SystemHealth } from "@/components/dashboard/system-health";
 
 export default async function SettingsPage() {
     const school = await prisma.schoolSettings.findFirst();
@@ -117,6 +118,11 @@ export default async function SettingsPage() {
                             </button>
                         </div>
                     </div>
+                </div>
+
+                {/* System Telemetry */}
+                <div className="lg:col-span-1 space-y-6">
+                    <SystemHealth />
                 </div>
             </div>
         </div>
