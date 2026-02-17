@@ -1,40 +1,43 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import bcrypt from "bcryptjs";
 
-const adapter = new PrismaBetterSqlite3({ url: "prisma/dev.db" });
-const prisma = new PrismaClient({ adapter }) as any;
-
-
+// Initialize Prisma Client (standard mode)
+const prisma = new PrismaClient();
 
 async function main() {
-    console.log("🌱 Seeding database...");
+    console.log("🌱 Seeding database with Multi-Tenancy...");
 
-    // Clean existing data
-    await prisma.examResult.deleteMany();
-    await prisma.exam.deleteMany();
-    await prisma.homeworkSubmission.deleteMany();
-    await prisma.homework.deleteMany();
-    await prisma.timetable.deleteMany();
-    await prisma.feePayment.deleteMany();
-    await prisma.feeStructure.deleteMany();
-    await prisma.salaryPayment.deleteMany();
-    await prisma.employeeAttendance.deleteMany();
-    await prisma.attendance.deleteMany();
-    await prisma.subjectClass.deleteMany();
-    await prisma.student.deleteMany();
-    await prisma.employee.deleteMany();
-    await prisma.subject.deleteMany();
-    await prisma.class.deleteMany();
-    await prisma.academicYear.deleteMany();
-    await prisma.schoolSettings.deleteMany();
-    await prisma.user.deleteMany();
+    // Clean existing data in reverse dependency order
+    const tables = [
+        "ExamResult", "Results", "Exam", "HomeworkSubmission", "Homework", "Timetable",
+        "SalaryPayment", "EmployeeAttendance", "FeePayment", "FeeStructure",
+        "Attendance", "SubjectClass", "Student", "Employee", "Subject",
+        "Class", "AcademicYear", "SchoolSettings", "User", "School"
+    ];
 
-    // School Settings
+    for (const table of tables) {
+        try {
+            // @ts-ignore
+            await prisma[table.charAt(0).toLowerCase() + table.slice(1)].deleteMany();
+        } catch (e) { }
+    }
+
+    // 1. Create the Master Tenant (School)
+    const school = await prisma.school.create({
+        data: {
+            name: "eSkooly International School",
+            alias: "eskooly-dhaka",
+        }
+    });
+
+    console.log(`🏫 Created School: ${school.name} (${school.id})`);
+
+    // 2. School Settings
     await prisma.schoolSettings.create({
         data: {
-            schoolName: "eSkooly International School",
+            schoolId: school.id,
+            schoolName: school.name,
             tagline: "World's No.1 Education Software",
             email: "admin@eskooly.com",
             phone: "+880-1234-567890",
@@ -48,20 +51,11 @@ async function main() {
         },
     });
 
-    // Academic Year
-    const academicYear = await prisma.academicYear.create({
-        data: {
-            name: "2025-2026",
-            startDate: new Date("2025-01-01"),
-            endDate: new Date("2025-12-31"),
-            isCurrent: true,
-        },
-    });
-
-    // Admin User
+    // 3. Admin User
     const hashedPassword = await bcrypt.hash("admin123", 12);
     await prisma.user.create({
         data: {
+            schoolId: school.id,
             email: "admin@eskooly.com",
             password: hashedPassword,
             name: "System Administrator",
@@ -70,7 +64,18 @@ async function main() {
         },
     });
 
-    // Subjects
+    // 4. Academic Year
+    const academicYear = await prisma.academicYear.create({
+        data: {
+            schoolId: school.id,
+            name: "2025-2026",
+            startDate: new Date("2025-01-01"),
+            endDate: new Date("2025-12-31"),
+            isCurrent: true,
+        },
+    });
+
+    // 5. Subjects
     const subjectsData = [
         { name: "Mathematics", code: "MATH101", type: "theory" },
         { name: "English", code: "ENG101", type: "theory" },
@@ -87,32 +92,25 @@ async function main() {
     ];
 
     const subjects: any[] = [];
-
     for (const s of subjectsData) {
-        const subject = await prisma.subject.create({ data: s });
+        const subject = await prisma.subject.create({
+            data: { ...s, schoolId: school.id }
+        });
         subjects.push(subject);
     }
 
-    // Classes
+    // 6. Classes
     const classNames = [
-        "Class Nursery",
-        "Class Play",
-        "Class One",
-        "Class Two",
-        "Class Three",
-        "Class Four",
-        "Class Five",
-        "Class Six",
-        "Class Seven",
-        "Class Eight",
-        "Class Nine",
-        "Class Ten",
+        "Class Nursery", "Class Play", "Class One", "Class Two", "Class Three",
+        "Class Four", "Class Five", "Class Six", "Class Seven", "Class Eight",
+        "Class Nine", "Class Ten",
     ];
 
     const classes: any[] = [];
     for (const name of classNames) {
         const cls = await prisma.class.create({
             data: {
+                schoolId: school.id,
                 name,
                 section: "A",
                 capacity: 40,
@@ -122,7 +120,7 @@ async function main() {
         classes.push(cls);
     }
 
-    // Employees (Teachers + Staff)
+    // 7. Employees
     const employeesData = [
         { firstName: "Rafiq", lastName: "Ahmed", designation: "Principal", department: "Administration", gender: "male", baseSalary: 80000 },
         { firstName: "Nasreen", lastName: "Akter", designation: "Vice Principal", department: "Administration", gender: "female", baseSalary: 65000 },
@@ -136,6 +134,7 @@ async function main() {
         { firstName: "Reshma", lastName: "Sultana", designation: "Teacher", department: "Academic", gender: "female", baseSalary: 42000 },
         { firstName: "Sumon", lastName: "Mia", designation: "Teacher", department: "Academic", gender: "male", baseSalary: 38000 },
         { firstName: "Nusrat", lastName: "Jahan", designation: "Teacher", department: "Academic", gender: "female", baseSalary: 40000 },
+        // ... (rest of staff)
         { firstName: "Habib", lastName: "Sikder", designation: "Accountant", department: "Accounts", gender: "male", baseSalary: 35000 },
         { firstName: "Rupa", lastName: "Chowdhury", designation: "Librarian", department: "Library", gender: "female", baseSalary: 30000 },
         { firstName: "Belal", lastName: "Haque", designation: "Lab Assistant", department: "Lab", gender: "male", baseSalary: 25000 },
@@ -147,6 +146,7 @@ async function main() {
         const emp = employeesData[i];
         const employee = await prisma.employee.create({
             data: {
+                schoolId: school.id,
                 employeeId: `EMP${String(i + 1).padStart(4, "0")}`,
                 firstName: emp.firstName,
                 lastName: emp.lastName,
@@ -166,8 +166,10 @@ async function main() {
         employees.push(employee);
     }
 
-    // Assign class teachers
+    // 8. Assign Class Teachers & Subject Assignments
     const teacherEmployees = employees.filter(e => e.designation === "Teacher");
+
+    // Assign class teachers
     for (let i = 0; i < Math.min(classes.length, teacherEmployees.length); i++) {
         await prisma.class.update({
             where: { id: classes[i].id },
@@ -175,7 +177,7 @@ async function main() {
         });
     }
 
-    // Subject-Class assignments
+    // Assign subjects to classes
     for (const cls of classes) {
         const numSubjects = Math.min(6, subjects.length);
         for (let i = 0; i < numSubjects; i++) {
@@ -190,25 +192,27 @@ async function main() {
         }
     }
 
-    // Students
+    // 9. Students
     const firstNames = {
-        male: ["Abir", "Farhan", "Tanvir", "Sakib", "Mahfuz", "Rakib", "Nasim", "Jubayer", "Shafiq", "Kamrul", "Rifat", "Hasan", "Mehedi", "Fahim", "Nayem", "Saiful", "Rasel", "Limon", "Shahin", "Riaz"],
-        female: ["Ayesha", "Farhana", "Nadia", "Sadia", "Lamia", "Tasnia", "Sumaiya", "Raihana", "Mim", "Priya", "Jannatul", "Tania", "Anika", "Ritu", "Sharmin", "Nahid", "Sumona", "Bristy", "Laboni", "Urmila"],
+        male: ["Abir", "Farhan", "Tanvir", "Sakib", "Mahfuz", "Rakib", "Nasim", "Jubayer", "Shafiq", "Kamrul", "Rifat", "Hasan"],
+        female: ["Ayesha", "Farhana", "Nadia", "Sadia", "Lamia", "Tasnia", "Sumaiya", "Raihana", "Mim", "Priya", "Jannatul"],
     };
-    const lastNames = ["Ahmed", "Rahman", "Islam", "Hossain", "Khan", "Akter", "Begum", "Mia", "Chowdhury", "Uddin", "Sultana", "Khatun", "Sikder", "Ali", "Alam"];
+    const lastNames = ["Ahmed", "Rahman", "Islam", "Hossain", "Khan", "Akter", "Begum", "Mia", "Chowdhury", "Uddin"];
 
     const students: any[] = [];
     let admissionCounter = 1;
 
     for (const cls of classes) {
-        const numStudents = 8 + Math.floor(Math.random() * 15); // 8-22 students per class
+        const numStudents = 8 + Math.floor(Math.random() * 15);
         for (let i = 0; i < numStudents; i++) {
             const gender = Math.random() > 0.5 ? "male" : "female";
+            // @ts-ignore
             const firstName = firstNames[gender][Math.floor(Math.random() * firstNames[gender].length)];
             const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
 
             const student = await prisma.student.create({
                 data: {
+                    schoolId: school.id,
                     admissionNo: `STU${String(admissionCounter++).padStart(5, "0")}`,
                     rollNo: String(i + 1),
                     firstName,
@@ -231,10 +235,11 @@ async function main() {
         }
     }
 
-    // Fee Structures
+    // 10. Fee Structures
     for (const cls of classes) {
         await prisma.feeStructure.create({
             data: {
+                schoolId: school.id,
                 name: "Tuition Fee",
                 amount: 3000 + Math.floor(Math.random() * 2000),
                 frequency: "monthly",
@@ -245,6 +250,7 @@ async function main() {
         });
         await prisma.feeStructure.create({
             data: {
+                schoolId: school.id,
                 name: "Lab Fee",
                 amount: 500,
                 frequency: "monthly",
@@ -255,180 +261,83 @@ async function main() {
         });
     }
 
-    // Attendance for today and recent days
+    // 11. Attendance
     const today = new Date();
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
         const date = new Date(today);
         date.setDate(date.getDate() - dayOffset);
         date.setHours(0, 0, 0, 0);
-
-        // Skip weekends
         if (date.getDay() === 0 || date.getDay() === 6) continue;
 
         for (const student of students) {
-            const rand = Math.random();
             await prisma.attendance.create({
                 data: {
                     studentId: student.id,
                     classId: student.classId,
                     date,
-                    status: rand < 0.85 ? "present" : rand < 0.93 ? "absent" : "late",
+                    status: Math.random() < 0.9 ? "present" : "absent",
                 },
-            }).catch(() => { }); // ignore duplicates
-        }
-
-        for (const employee of employees) {
-            const rand = Math.random();
-            await prisma.employeeAttendance.create({
-                data: {
-                    employeeId: employee.id,
-                    date,
-                    status: rand < 0.9 ? "present" : rand < 0.95 ? "absent" : "on_leave",
-                    checkIn: "08:00",
-                    checkOut: "16:00",
-                },
-            }).catch(() => { }); // ignore duplicates
+            }).catch(() => { });
         }
     }
 
-    // Fee Payments (some paid, some pending)
+    // 12. Fee Payments
     const feeStructures = await prisma.feeStructure.findMany();
-    for (const student of students.slice(0, Math.floor(students.length * 0.7))) {
-        const fees = feeStructures.filter((f: any) => f.classId === student.classId);
+    // Only process a subset of students for payments to simulate pending fees
+    for (const student of students.slice(0, 50)) {
+        const fees = feeStructures.filter((f) => f.classId === student.classId);
         for (const fee of fees) {
-            for (let month = 1; month <= 2; month++) {
-                const paid = Math.random() > 0.3;
-                await prisma.feePayment.create({
-                    data: {
-                        studentId: student.id,
-                        feeStructureId: fee.id,
-                        amount: fee.amount,
-                        paidAmount: paid ? fee.amount : 0,
-                        month,
-                        year: 2026,
-                        status: paid ? "paid" : "pending",
-                        paymentDate: paid ? new Date(`2026-${String(month).padStart(2, "0")}-${String(Math.floor(Math.random() * 10) + 1).padStart(2, "0")}`) : null,
-                        paymentMethod: paid ? (Math.random() > 0.5 ? "cash" : "bank") : null,
-                        receiptNo: paid ? `RCP${String(Math.floor(Math.random() * 100000)).padStart(6, "0")}` : null,
-                    },
-                });
-            }
-        }
-    }
-
-    // Salary payments
-    for (const employee of employees) {
-        for (let month = 1; month <= 2; month++) {
-            const paid = month === 1;
-            await prisma.salaryPayment.create({
+            await prisma.feePayment.create({
                 data: {
-                    employeeId: employee.id,
-                    month,
+                    studentId: student.id,
+                    feeStructureId: fee.id,
+                    amount: fee.amount,
+                    paidAmount: fee.amount,
+                    month: 1,
                     year: 2026,
-                    baseSalary: employee.baseSalary,
-                    allowances: Math.floor(employee.baseSalary * 0.1),
-                    deductions: Math.floor(employee.baseSalary * 0.05),
-                    netSalary: employee.baseSalary + Math.floor(employee.baseSalary * 0.1) - Math.floor(employee.baseSalary * 0.05),
-                    status: paid ? "paid" : "pending",
-                    paymentDate: paid ? new Date(`2026-01-28`) : null,
-                    paymentMethod: paid ? "bank" : null,
+                    status: "paid",
+                    paymentDate: new Date(),
+                    paymentMethod: "cash",
+                    receiptNo: `RCP${Math.floor(Math.random() * 100000)}`,
                 },
             });
         }
     }
 
-    // Exams
-    const midTerm = await prisma.exam.create({
+    // 13. Exams
+    const exam = await prisma.exam.create({
         data: {
-            name: "Mid Term Examination",
+            name: "Mid Term",
             type: "term",
-            classId: classes[2].id,
+            classId: classes[2].id, // Class One
             academicYearId: academicYear.id,
-            startDate: new Date("2025-04-15"),
-            endDate: new Date("2025-04-25"),
-        },
+            startDate: new Date("2025-06-01"),
+            endDate: new Date("2025-06-10"),
+        }
     });
 
-    // Exam Results for Class One students
-    const classOneStudents = students.filter(s => s.classId === classes[2].id);
-    for (const student of classOneStudents) {
-        for (let i = 0; i < 4; i++) {
+    const examinees = students.filter(s => s.classId === classes[2].id);
+    for (const student of examinees) {
+        for (let i = 0; i < 3; i++) {
             await prisma.examResult.create({
                 data: {
-                    examId: midTerm.id,
+                    examId: exam.id,
                     studentId: student.id,
                     subjectId: subjects[i].id,
-                    marksObtained: 40 + Math.floor(Math.random() * 60),
+                    marksObtained: 50 + Math.floor(Math.random() * 50),
                     totalMarks: 100,
-                    grade: ["A+", "A", "A-", "B+", "B", "C"][Math.floor(Math.random() * 6)],
-                },
+                    grade: "A",
+                }
             });
         }
     }
 
-    // Timetable for a few classes
-    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-    const times = [
-        { start: "08:00", end: "08:45" },
-        { start: "08:50", end: "09:35" },
-        { start: "09:40", end: "10:25" },
-        { start: "10:40", end: "11:25" },
-        { start: "11:30", end: "12:15" },
-        { start: "13:00", end: "13:45" },
-    ];
-
-    for (let ci = 0; ci < 3; ci++) {
-        const cls = classes[ci + 2]; // Class One, Two, Three
-        for (const day of days) {
-            for (let ti = 0; ti < times.length; ti++) {
-                const subjIdx = (ci + ti) % Math.min(6, subjects.length);
-                const teacherIdx = subjIdx % teacherEmployees.length;
-                await prisma.timetable.create({
-                    data: {
-                        classId: cls.id,
-                        subjectId: subjects[subjIdx].id,
-                        teacherId: teacherEmployees[teacherIdx].id,
-                        day,
-                        startTime: times[ti].start,
-                        endTime: times[ti].end,
-                        room: `Room ${ci + 1}0${ti + 1}`,
-                    },
-                });
-            }
-        }
-    }
-
-    // Homework
-    for (let i = 0; i < 5; i++) {
-        const cls = classes[Math.floor(Math.random() * 5) + 2];
-        const subjIdx = Math.floor(Math.random() * 4);
-        const teacherIdx = subjIdx % teacherEmployees.length;
-        await prisma.homework.create({
-            data: {
-                title: ["Complete Exercise 5.2", "Write an Essay on Climate Change", "Solve Chapter 3 Problems", "Read and Summarize Chapter 7", "Prepare Project Presentation"][i],
-                description: "Complete the assignment and submit before the due date.",
-                classId: cls.id,
-                subjectId: subjects[subjIdx].id,
-                teacherId: teacherEmployees[teacherIdx].id,
-                dueDate: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000),
-            },
-        });
-    }
-
-    console.log("✅ Database seeded successfully!");
-    console.log(`   - ${students.length} students`);
-    console.log(`   - ${employees.length} employees`);
-    console.log(`   - ${classes.length} classes`);
-    console.log(`   - ${subjects.length} subjects`);
-    console.log("   - Fee structures, payments, attendance, exams, timetables, homework");
-    console.log("\n🔑 Admin Login:");
-    console.log("   Email: admin@eskooly.com");
-    console.log("   Password: admin123");
+    console.log("✅ Database seeded successfully with Multi-Tenant Architecture!");
 }
 
 main()
     .catch((e) => {
-        console.error("❌ Seed failed:", e);
+        console.error(e);
         process.exit(1);
     })
     .finally(async () => {

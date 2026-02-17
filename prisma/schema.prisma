@@ -1,33 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
-// ─── Authentication & Users ───────────────────────────────────────────
+// ─── Multi-Tenancy Core ───────────────────────────────────────────────
+
+model School {
+  id             String           @id @default(cuid())
+  name           String
+  alias          String           @unique // e.g., "my-school"
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  settings       SchoolSettings?
+  users          User[]
+  academicYears  AcademicYear[]
+  students       Student[]
+  employees      Employee[]
+  classes        Class[]
+  subjects       Subject[]
+  feeStructures  FeeStructure[]
+}
+
+// ─── User Management ──────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  name          String
-  role          String    @default("admin") // admin, teacher, accountant, student, parent
-  avatar        String?
-  phone         String?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String   @id @default(cuid())
+  schoolId       String
+  email          String   @unique
+  password       String
+  name           String?
+  role           String   @default("student") // admin, teacher, student, parent
+  phone          String?
+  avatar         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  employee      Employee?
-  student       Student?
+  school         School   @relation(fields: [schoolId], references: [id])
 }
 
-// ─── Academic Year ────────────────────────────────────────────────────
+// ─── School Settings ──────────────────────────────────────────────────
+
+model SchoolSettings {
+  id          String   @id @default(cuid())
+  schoolId    String   @unique
+  schoolName  String   @default("My School")
+  tagline     String?
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  country     String?
+  zipCode     String?
+  logo        String?
+  favicon     String?
+  website     String?
+  currency    String   @default("BDT")
+  timezone    String   @default("Asia/Dhaka")
+  dateFormat  String   @default("DD/MM/YYYY")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School   @relation(fields: [schoolId], references: [id])
+}
+
+// ─── Academic Structure ───────────────────────────────────────────────
 
 model AcademicYear {
   id        String   @id @default(cuid())
+  schoolId  String
   name      String   // e.g., "2025-2026"
   startDate DateTime
   endDate   DateTime
@@ -35,156 +84,158 @@ model AcademicYear {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  classes      Class[]
+  school    School   @relation(fields: [schoolId], references: [id])
+  classes   Class[]
   feeStructures FeeStructure[]
-  exams        Exam[]
+  exams     Exam[]
 }
 
-// ─── School Classes ───────────────────────────────────────────────────
-
 model Class {
-  id             String       @id @default(cuid())
-  name           String       // e.g., "Class One", "Class Two"
-  section        String       @default("A")
-  capacity       Int          @default(40)
-  academicYearId String
+  id             String   @id @default(cuid())
+  schoolId       String
+  name           String   // e.g., "Class 10"
+  section        String?  // e.g., "A", "Morning"
+  capacity       Int?
   classTeacherId String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  academicYearId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
+  school         School   @relation(fields: [schoolId], references: [id])
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
   classTeacher   Employee?    @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  
   students       Student[]
   subjects       SubjectClass[]
   timetables     Timetable[]
-  homework       Homework[]
   feeStructures  FeeStructure[]
   exams          Exam[]
-  attendances    Attendance[]
-
-  @@unique([name, section, academicYearId])
+  homework       Homework[]
 }
-
-// ─── Subjects ─────────────────────────────────────────────────────────
 
 model Subject {
   id        String   @id @default(cuid())
-  name      String   @unique
-  code      String   @unique
-  type      String   @default("theory") // theory, practical, both
+  schoolId  String
+  name      String
+  code      String?
+  type      String   @default("theory") // theory, practical
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  classes      SubjectClass[]
-  timetables   Timetable[]
-  homework     Homework[]
-  examResults  ExamResult[]
+  school    School   @relation(fields: [schoolId], references: [id])
+  classes   SubjectClass[]
+  timetables Timetable[]
+  exams      ExamResult[]
+  homework   Homework[]
 }
 
 model SubjectClass {
-  id         String   @id @default(cuid())
-  subjectId  String
-  classId    String
-  teacherId  String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  subjectId String
+  classId   String
+  teacherId String?
 
-  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  teacher    Employee? @relation(fields: [teacherId], references: [id])
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  class     Class    @relation(fields: [classId], references: [id])
+  teacher   Employee? @relation(fields: [teacherId], references: [id])
 
   @@unique([subjectId, classId])
 }
 
-// ─── Students ─────────────────────────────────────────────────────────
+// ─── People (Students & Employees) ────────────────────────────────────
 
 model Student {
-  id              String   @id @default(cuid())
-  userId          String?  @unique
-  admissionNo     String   @unique
-  rollNo          String?
-  firstName       String
-  lastName        String
-  dateOfBirth     DateTime
-  gender          String   // male, female, other
-  bloodGroup      String?
-  religion        String?
-  address         String?
-  city            String?
-  state           String?
-  zipCode         String?
-  phone           String?
-  email           String?
-  photo           String?
-  classId         String
-  guardianName    String?
-  guardianPhone   String?
-  guardianEmail   String?
+  id           String   @id @default(cuid())
+  schoolId     String
+  firstName    String
+  lastName     String
+  admissionNo  String   @unique
+  rollNo       String?
+  classId      String
+  
+  // Personal Details
+  dateOfBirth  DateTime
+  gender       String
+  bloodGroup   String?
+  religion     String?
+  phone        String?
+  email        String?
+  address      String?
+  city         String?
+  state        String?
+  
+  // Guardian Details
+  guardianName String?
+  guardianPhone String?
   guardianRelation String?
-  previousSchool  String?
-  admissionDate   DateTime @default(now())
-  status          String   @default("active") // active, inactive, graduated, transferred
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  
+  // System
+  profilePic   String?
+  status       String   @default("active") // active, transferred, graduated
+  admissionDate DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  user            User?    @relation(fields: [userId], references: [id])
-  class           Class    @relation(fields: [classId], references: [id])
-  attendances     Attendance[]
-  feePayments     FeePayment[]
-  examResults     ExamResult[]
+  school       School   @relation(fields: [schoolId], references: [id])
+  class        Class    @relation(fields: [classId], references: [id])
+  
+  attendance   Attendance[]
+  feePayments  FeePayment[]
+  examResults  ExamResult[]
   homeworkSubmissions HomeworkSubmission[]
 }
 
-// ─── Employees ────────────────────────────────────────────────────────
-
 model Employee {
-  id             String   @id @default(cuid())
-  userId         String?  @unique
-  employeeId     String   @unique
-  firstName      String
-  lastName       String
-  designation    String   // Teacher, Principal, Accountant, Clerk, etc.
-  department     String   // Academic, Administration, Accounts, etc.
-  dateOfBirth    DateTime
-  gender         String
-  bloodGroup     String?
-  religion       String?
-  address        String?
-  city           String?
-  state          String?
-  zipCode        String?
-  phone          String
-  email          String   @unique
-  photo          String?
-  joiningDate    DateTime @default(now())
-  qualification  String?
-  experience     String?
-  baseSalary     Float    @default(0)
-  status         String   @default("active") // active, inactive, terminated
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String   @id @default(cuid())
+  schoolId     String
+  employeeId   String   @unique
+  firstName    String
+  lastName     String
+  designation  String   // Teacher, Principal, Accountant
+  department   String?
 
-  user           User?    @relation(fields: [userId], references: [id])
-  classTeacher   Class[]  @relation("ClassTeacher")
+  // Personal Details
+  dateOfBirth  DateTime
+  gender       String
+  phone        String
+  email        String   @unique
+  address      String?
+  city         String?
+  qualification String?
+  
+  // Employment
+  joiningDate  DateTime
+  baseSalary   Float
+  status       String   @default("active")
+  
+  // System
+  profilePic   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  school       School   @relation(fields: [schoolId], references: [id])
+  
+  // Relations
+  classesDocent Class[] @relation("ClassTeacher") // Classes where they are class teacher
   subjectClasses SubjectClass[]
-  timetables     Timetable[]
-  homework       Homework[]
+  attendance    EmployeeAttendance[]
   salaryPayments SalaryPayment[]
-  employeeAttendances EmployeeAttendance[]
+  timetables    Timetable[]
+  homework      Homework[]
 }
 
 // ─── Attendance ───────────────────────────────────────────────────────
 
 model Attendance {
-  id        String   @id @default(cuid())
-  studentId String
-  classId   String
-  date      DateTime
-  status    String   // present, absent, late, excused
-  remarks   String?
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  studentId  String
+  classId    String
+  date       DateTime
+  status     String   // present, absent, late, leave
+  remarks    String?
+  createdAt  DateTime @default(now())
 
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  class     Class    @relation(fields: [classId], references: [id])
+  student    Student  @relation(fields: [studentId], references: [id])
 
   @@unique([studentId, date])
 }
@@ -193,7 +244,7 @@ model EmployeeAttendance {
   id         String   @id @default(cuid())
   employeeId String
   date       DateTime
-  status     String   // present, absent, late, on_leave
+  status     String   // present, absent, leave
   checkIn    String?
   checkOut   String?
   remarks    String?
@@ -208,6 +259,7 @@ model EmployeeAttendance {
 
 model FeeStructure {
   id             String       @id @default(cuid())
+  schoolId       String
   name           String       // e.g., "Tuition Fee", "Lab Fee"
   amount         Float
   frequency      String       @default("monthly") // monthly, quarterly, yearly, one-time
@@ -217,6 +269,7 @@ model FeeStructure {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  school         School       @relation(fields: [schoolId], references: [id])
   class          Class        @relation(fields: [classId], references: [id])
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
   payments       FeePayment[]
@@ -356,27 +409,4 @@ model ExamResult {
   subject    Subject  @relation(fields: [subjectId], references: [id])
 
   @@unique([examId, studentId, subjectId])
-}
-
-// ─── School Settings ──────────────────────────────────────────────────
-
-model SchoolSettings {
-  id          String   @id @default(cuid())
-  schoolName  String   @default("My School")
-  tagline     String?
-  email       String?
-  phone       String?
-  address     String?
-  city        String?
-  state       String?
-  country     String?
-  zipCode     String?
-  logo        String?
-  favicon     String?
-  website     String?
-  currency    String   @default("BDT")
-  timezone    String   @default("Asia/Dhaka")
-  dateFormat  String   @default("DD/MM/YYYY")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
