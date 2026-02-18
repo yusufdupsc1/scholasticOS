@@ -2,24 +2,36 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-    // Mock authentication check
-    // In a real app, you would check for a session token here
-    const isAuthenticated = true; // For demo purposes, we assume always authenticated
+    // Check for auth token from cookie or Authorization header
+    const authToken = request.cookies.get('auth_token')?.value || 
+                      request.headers.get('authorization')?.replace('Bearer ', '');
 
-    // Protect Dashboard and API routes (except auth routes if they existed)
-    if (!isAuthenticated) {
-        if (request.nextUrl.pathname.startsWith('/dashboard') ||
-            request.nextUrl.pathname.startsWith('/api')) {
-            return NextResponse.redirect(new URL('/login', request.url))
-        }
+    const isAuthenticated = !!authToken;
+    const isLoginPage = request.nextUrl.pathname === '/login';
+    const isApiAuth = request.nextUrl.pathname === '/api/auth';
+    const isRoot = request.nextUrl.pathname === '/';
+    const isDashboard = request.nextUrl.pathname.startsWith('/dashboard');
+
+    // Allow auth API routes
+    if (isApiAuth || isLoginPage) {
+        return NextResponse.next();
     }
 
-    return NextResponse.next()
+    // Redirect to login if accessing root or dashboard without auth
+    if (!isAuthenticated && (isRoot || isDashboard)) {
+        return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    // Redirect to dashboard if already authenticated and on login page
+    if (isAuthenticated && isLoginPage) {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
+    return NextResponse.next();
 }
 
 export const config = {
     matcher: [
-        '/dashboard/:path*',
-        '/api/:path*',
+        '/((?!api|_next/static|_next/image|favicon.ico).*)',
     ],
 }

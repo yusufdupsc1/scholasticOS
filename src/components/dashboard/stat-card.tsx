@@ -1,48 +1,76 @@
+"use client";
+
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface StatCardProps {
     label: string;
     value: string | number;
-    subValue: string | number;
+    subValue?: string | number;
     icon: LucideIcon;
-    variant: "blue" | "indigo" | "pink" | "orange";
+    variant: "blue" | "indigo" | "pink" | "orange" | "emerald";
 }
 
 const variants = {
-    blue: "from-blue-600 to-blue-700 shadow-blue-100",
-    indigo: "from-indigo-600 to-indigo-700 shadow-indigo-100",
-    pink: "from-fuchsia-600 to-pink-600 shadow-pink-100",
-    orange: "from-orange-500 to-amber-600 shadow-orange-100"
+    blue: {
+        bg: "bg-blue-500/10",
+        icon: "text-blue-600",
+        glow: "shadow-blue-500/10"
+    },
+    indigo: {
+        bg: "bg-brand-indigo/10",
+        icon: "text-brand-indigo",
+        glow: "shadow-brand-indigo/10"
+    },
+    pink: {
+        bg: "bg-rose-500/10",
+        icon: "text-rose-600",
+        glow: "shadow-rose-500/10"
+    },
+    orange: {
+        bg: "bg-orange-500/10",
+        icon: "text-orange-600",
+        glow: "shadow-orange-500/10"
+    },
+    emerald: {
+        bg: "bg-emerald-500/10",
+        icon: "text-emerald-600",
+        glow: "shadow-emerald-500/10"
+    }
 };
 
 export function StatCard({ label, value, subValue, icon: Icon, variant }: StatCardProps) {
+    const style = variants[variant];
+
     return (
-        <div className={cn(
-            "relative overflow-hidden rounded-[2rem] p-8 text-white shadow-2xl transition-all duration-500 hover:scale-[1.03] hover:-translate-y-1 bg-gradient-to-br",
-            variants[variant]
-        )}>
-            <div className="flex justify-between items-start relative z-10">
-                <div className="space-y-2">
-                    <p className="text-white/70 font-bold text-xs tracking-[0.2em] uppercase">{label}</p>
-                    <h3 className="text-4xl lg:text-5xl font-black tracking-tight">{value}</h3>
+        <motion.div
+            whileHover={{ y: -8, scale: 1.02 }}
+            className={cn(
+                "glass p-8 rounded-[2.5rem] relative overflow-hidden group transition-all duration-500",
+                style.glow
+            )}
+        >
+            <div className="flex flex-col gap-6 relative z-10">
+                <div className="flex items-center justify-between">
+                    <div className={cn("p-4 rounded-2xl transition-all duration-500 group-hover:rotate-6", style.bg)}>
+                        <Icon className={cn("w-6 h-6", style.icon)} />
+                    </div>
+                    {subValue && (
+                        <div className="px-3 py-1 bg-slate-900 rounded-full">
+                            <span className="text-[10px] font-black text-white italic tracking-wider">{subValue}</span>
+                        </div>
+                    )}
                 </div>
-                <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-inner">
-                    <Icon size={32} className="text-white drop-shadow-md" />
+
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</p>
+                    <h3 className="text-3xl font-black text-slate-900 tracking-tight font-plus-jakarta italic">{value}</h3>
                 </div>
             </div>
 
-            <div className="mt-10 flex items-center justify-between pt-5 border-t border-white/10 uppercase tracking-widest text-[11px] font-black relative z-10">
-                <span className="text-white/50">Current Period</span>
-                <span className="text-white bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">{subValue}</span>
-            </div>
-
-            {/* Premium decorative elements */}
-            <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-            <div className="absolute -left-12 -bottom-12 w-48 h-48 bg-black/10 rounded-full blur-2xl"></div>
-
-            {/* Glossy overlay */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-50"></div>
-        </div>
+            {/* Decorative Element */}
+            <div className={cn("absolute -right-6 -bottom-6 w-24 h-24 blur-[64px] rounded-full transition-all duration-1000 group-hover:scale-150", style.bg)} />
+        </motion.div>
     );
 }

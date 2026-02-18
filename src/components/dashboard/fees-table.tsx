@@ -2,35 +2,50 @@
 
 import { DataTable } from "@/components/shared/data-table";
 import { cn, formatCurrency } from "@/lib/utils";
-import { Banknote, Clock, CheckCircle, AlertCircle, TrendingUp, DollarSign, Wallet } from "lucide-react";
+import { Clock, CheckCircle, AlertCircle, TrendingUp, DollarSign } from "lucide-react";
 import { useState } from "react";
 import { Modal } from "@/components/shared/modal";
 import { PaymentForm } from "@/components/dashboard/payment-form";
 
-export function FeesTable({ payments }: { payments: any[] }) {
+interface Payment {
+    id: string;
+    receiptNo: string | null;
+    student: {
+        firstName: string;
+        lastName: string;
+        class: { name: string };
+    };
+    feeStructure: { name: string };
+    month: number;
+    year: number;
+    amount: number;
+    status: string;
+}
+
+export function FeesTable({ payments }: { payments: Payment[] }) {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     const columns = [
         {
             header: "Receipt #",
             accessorKey: "receiptNo" as const,
-            cell: (item: any) => (
-                <span className="font-mono font-black text-xs text-gray-400 uppercase tracking-widest">
-                    #{item.receiptNo ? item.receiptNo.replace('RCP', '') : 'N/A'}
+            cell: (item: Payment) => (
+                <span className="font-mono font-black text-xs text-slate-400 uppercase tracking-widest">
+                    #{item.receiptNo ? item.receiptNo.replace("RCP", "") : "N/A"}
                 </span>
             ),
         },
         {
             header: "Student Details",
             accessorKey: "student" as const,
-            cell: (item: any) => (
+            cell: (item: Payment) => (
                 <div className="flex items-center gap-4 group cursor-pointer">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 text-indigo-600 flex items-center justify-center font-black text-xs border border-indigo-100 shadow-sm transition-transform group-hover:scale-105">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-indigo/5 to-brand-violet/5 text-brand-indigo flex items-center justify-center font-black text-xs border border-brand-indigo/10 shadow-sm transition-transform group-hover:scale-105">
                         {item.student.firstName[0]}{item.student.lastName[0]}
                     </div>
                     <div>
-                        <p className="font-black text-[#1e266d] group-hover:text-blue-600 transition-colors">{item.student.firstName} {item.student.lastName}</p>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{item.student.class.name}</p>
+                        <p className="font-black text-slate-900 group-hover:text-brand-indigo transition-colors italic">{item.student.firstName} {item.student.lastName}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">{item.student.class.name}</p>
                     </div>
                 </div>
             ),
@@ -38,10 +53,10 @@ export function FeesTable({ payments }: { payments: any[] }) {
         {
             header: "Type",
             accessorKey: "feeStructure" as const,
-            cell: (item: any) => (
+            cell: (item: Payment) => (
                 <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                    <div className="w-1.5 h-1.5 rounded-full bg-brand-indigo"></div>
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wide italic">
                         {item.feeStructure.name}
                     </span>
                 </div>
@@ -50,17 +65,17 @@ export function FeesTable({ payments }: { payments: any[] }) {
         {
             header: "Billing Period",
             accessorKey: "month" as const,
-            cell: (item: any) => (
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                    {new Date(0, item.month - 1).toLocaleString('default', { month: 'short' }).toUpperCase()} '{item.year.toString().slice(-2)}
+            cell: (item: Payment) => (
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm">
+                    {new Date(0, item.month - 1).toLocaleString("default", { month: "short" }).toUpperCase()} &apos;{item.year.toString().slice(-2)}
                 </span>
             ),
         },
         {
             header: "Amount",
             accessorKey: "amount" as const,
-            cell: (item: any) => (
-                <span className="font-black text-[#1e266d] text-sm tracking-tight">
+            cell: (item: Payment) => (
+                <span className="font-black text-slate-900 text-sm tracking-tight italic">
                     {formatCurrency(item.amount)}
                 </span>
             ),
@@ -68,14 +83,14 @@ export function FeesTable({ payments }: { payments: any[] }) {
         {
             header: "Status",
             accessorKey: "status" as const,
-            cell: (item: any) => (
+            cell: (item: Payment) => (
                 <span className={cn(
-                    "px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 w-fit border shadow-sm",
-                    item.status === "paid" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                        item.status === "pending" ? "bg-amber-50 text-amber-600 border-amber-100" :
-                            "bg-rose-50 text-rose-600 border-rose-100"
+                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 w-fit border shadow-premium backdrop-blur-md",
+                    item.status === "paid" ? "bg-emerald-50/50 text-emerald-600 border-emerald-100/50" :
+                        item.status === "pending" ? "bg-amber-50/50 text-amber-600 border-amber-100/50" :
+                            "bg-rose-50/50 text-rose-600 border-rose-100/50"
                 )}>
-                    {item.status === "paid" ? <CheckCircle size={10} className="fill-emerald-200" /> : <AlertCircle size={10} className="fill-amber-200" />}
+                    {item.status === "paid" ? <CheckCircle size={12} className="fill-emerald-200" /> : <AlertCircle size={12} className="fill-amber-200" />}
                     {item.status}
                 </span>
             ),

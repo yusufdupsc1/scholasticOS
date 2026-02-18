@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     }
 }
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
     try {
         const school = await prisma.school.findFirst();
         if (!school) return NextResponse.json([]);

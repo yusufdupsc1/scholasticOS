@@ -9,46 +9,33 @@
 
 Unlike generic "school management" scripts, **ScholasticOS** was engineered to solve specific distributed data problems inherent in academic ecosystems: **Temporal conflicts** (timetabling), **Financial atomicity** (fee ledgers), and **Relational density** (student-guardian-faculty graphs).
 
-### 1. Core Architecture Pattern
-The system follows a **Domain-Driven Design (DDD)** approach within a modular monolith structure, leveraging the **Next.js App Router** for vertical slicing of features.
+### 1. Scholastic 2.0: The "Editorial Developer" Aesthetic
+ScholasticOS 2.0 introduces a premium design system built on **Glassmorphism** and **Bento Grid** layouts.
 
-```mermaid
-graph TD
-    User[Client / Browser] -->|HTTPS/TLS| Edge[Edge Network / CDN]
-    Edge -->|RSC Payload| App[Next.js App Server]
-    
-    subgraph "Application Layer (ScholasticOS Core)"
-        App -->|Zod Validation| Actions[Server Actions]
-        Actions -->|Typesafe Query| Data[Data Access Layer]
-        Data -->|Optimistic UI| Cache[Request Memoization]
-    end
-    
-    subgraph "Persistence Layer"
-        Data -->|Prisma ORM| DB[(Relational DB / SQLite)]
-    end
-    
-    subgraph "Observability"
-        App -->|Telemetry| Logs[System Health Monitor]
-    end
-```
+*   **Bento Layout Strategy:** Dashboard components are vertically sliced into independent "tiles" that maintain a strict hierarchy while supporting fluid responsiveness.
+*   **Glassmorphism Specs:** Standardized on `backdrop-blur-xl` and `border-white/5` for all primary containers, creating a sense of layered depth and modern "OS-level" clarity.
+*   **Typography Scaling:** Utilizes **Plus Jakarta Sans** for semantic headings and **Inter** for UI actions, optimized for high legibility in dense data environments.
 
-### 2. Key Engineering Decisions (RFCs)
+### 2. Rendering Pattern: The RCC/RSC Synergy
+*   **Problem:** dashboards are data-heavy; client-side fetching causes waterfalls, but `framer-motion` requires a Client Component context.
+*   **Solution:** **Hybrid Component Composition**. 
+    *   `DashboardPage` (RSC): Orchestrates high-speed server-side data fetching via Prisma.
+    *   `DashboardView` (RCC): A "View Wrapper" that receives data as props and orchestrates cinematic entrance animations and micro-interactions.
+    *   *Result:* Zero-latency data loading with high-end, orchestrated animations.
 
-#### **RFC-001: Hybrid Rendering Strategy**
-*   **Problem:** dashboards are data-heavy; client-side fetching causes waterfalls.
-*   **Solution:** Leveraged **React Server Components (RSC)** for the dashboard shell to fetch aggregated stats (financials, attendance) in parallel on the server.
-    *   *Result:* First Contentful Paint (FCP) reduced by ~40% compared to traditional SPA fetch-on-mount patterns.
-    *   *Trade-off:* Higher server load, mitigated by aggressive caching of static assets.
+### 3. Key Engineering RFCs
 
-#### **RFC-002: Atomic Financial Transactions**
-*   **Problem:** Partial fee payments and strict audit requirements.
-*   **Solution:** Implemented double-entry bookkeeping principles in the schema. Fee payments are immutable records linked to `FeeStructures`.
-*   **Security:** Middleware-enforced RBAC (Role-Based Access Control) ensures only authorized personnel can mutate financial ledgers.
+#### **RFC-001: Multi-Tenant Data Isolation**
+*   **Constraint:** Zero leakage between institutions.
+*   **Implementation:** All queries are filtered through institution context providers. Foreign-key indexing on `schoolId` ensures performant O(1) lookups.
 
-#### **RFC-003: Type-Safe Data Mutations**
-*   **Problem:** Form state management and backend validation divergence.
-*   **Solution:** **Zod** schema sharing. The same schema used for client-side form validation (`react-hook-form`) is imported on the server to validate API payloads.
-    *   *Guarantee:* Zero discrepancies between UI feedback and DB constraints.
+#### **RFC-002: Atomic Financial Ledger**
+*   **Problem:** Ensuring consistency in fee collection and partial payments.
+*   **Solution:** Used **Double-Entry Bookkeeping Principles**. All payments are modeled as immutable transaction records linked to `FeeStructures`.
+
+#### **RFC-003: Type-Safe Identity Flow**
+*   **Implementation:** Shared `Zod` schemas between frontend forms and server actions.
+*   **Security:** Middleware-enforced session verification at the Next.js Edge layer.
 
 ---
 
@@ -56,38 +43,27 @@ graph TD
 
 | Component | Technology | Rationale |
 | :--- | :--- | :--- |
-| **Framework** | **Next.js 15 (App Router)** | For its server-centric model, crucial for secure internal tools. |
-| **Language** | **TypeScript (Strict)** | To enforce contract adherence across the full stack. |
+| **Framework** | **Next.js 14+ (App Router)** | For its server-centric model, crucial for secure internal tools. |
+| **Animation** | **Framer Motion 11** | High-performance animation engine for orchestrated UI state. |
 | **ORM** | **Prisma** | For explicit relationship mapping and migration safety. |
-| **State** | **URL-Driven (Search Params)** | Preferring URL state over global stores for shareable, reproducible UI states. |
-| **Styling** | **Tailwind CSS + clsx** | Utility-first approach for design system consistency and rapid iteration. |
-| **Animation** | **Framer Motion** | Used sparingly for "delight" without blocking the main thread. |
-
----
-
-## 🧩 Data Model (Simplified)
-
-The schema is designed to handle complex many-to-many relationships (e.g., `Subject` <-> `Class` <-> `Teacher`).
-
-*   **`Student`**: The core entity, polymorphic relationships to `Attendance`, `FeePayment`, `ExamResult`.
-*   **`Timetable`**: A temporal entity resolving `Class`, `Subject`, `Teacher`, `Room`, and `TimeSlot`.
+| **Styling** | **Tailwind CSS** | Utility-first approach for design system consistency and rapid iteration. |
 
 ---
 
 ## 🚀 Performance Optimization
 
-1.  **Route Prefetching:** The Sidebar component intelligently prefetches critical routes (Students, Fees) on hover.
+1.  **Route Prefetching:** The Sidebar intelligently prefetches critical routes on hover.
 2.  **Edge Middleware:** Authentication runs at the edge to reject unauthenticated requests before they hit the cold lambda.
-3.  **Database Indexing:** Foreign keys are indexed to ensure `O(1)` lookups for relational queries (e.g., fetching all students in a class).
+3.  **Database Indexing:** Foreign keys are indexed to ensure fast lookups for relational queries.
 
 ---
 
 ## 🛡 Security Posture
 
 *   **CSRF Protection:** Native Next.js server action protection.
-*   **Input Sanitization:** All inputs run through `zod` parsers; HTML is escaped by React by default.
-*   **Dependency Auditing:** Automated `npm audit` pipelines to block CVEs.
+*   **Input Sanitization:** All inputs run through `zod` parsers.
+*   **Audit-Ready Logs:** Financial ledger maintains a strict immutable record history.
 
 ---
 
-*This project represents a synthesis of modern full-stack patterns, prioritizing maintenance, readability, and performance.*
+*This project represents a synthesis of modern full-stack patterns, prioritizing maintenance, readability, and premium UX.*

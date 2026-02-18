@@ -2,15 +2,25 @@
 
 import { DataTable } from "@/components/shared/data-table";
 import { cn } from "@/lib/utils";
-import { BookMarked, FlaskConical, Library, Shapes } from "lucide-react";
+import { FlaskConical, Library, Shapes } from "lucide-react";
 
-export function SubjectsTable({ subjects }: { subjects: any[] }) {
+interface Subject {
+    id: string;
+    code: string;
+    name: string;
+    type: string;
+    _count: {
+        classes: number;
+    };
+}
+
+export function SubjectsTable({ subjects }: { subjects: Subject[] }) {
     const columns = [
         {
             header: "Curriculum Code",
             accessorKey: "code" as const,
-            cell: (item: any) => (
-                <span className="font-mono font-black text-blue-600 text-[10px] uppercase tracking-[0.2em] bg-blue-50/50 border border-blue-100 px-3 py-1.5 rounded-xl shadow-sm">
+            cell: (item: Subject) => (
+                <span className="font-mono font-black text-brand-indigo text-[10px] uppercase tracking-[0.2em] bg-brand-indigo/5 border border-brand-indigo/10 px-3 py-1.5 rounded-xl shadow-sm">
                     {item.code}
                 </span>
             ),
@@ -18,18 +28,18 @@ export function SubjectsTable({ subjects }: { subjects: any[] }) {
         {
             header: "Subject Identity",
             accessorKey: "name" as const,
-            cell: (item: any) => (
+            cell: (item: Subject) => (
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner group-hover:bg-white transition-colors">
-                        {item.type === 'theory' ? (
+                    <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100 shadow-inner group-hover:bg-white transition-colors">
+                        {item.type === "theory" ? (
                             <Library size={18} className="text-amber-500 fill-amber-50" />
                         ) : (
-                            <FlaskConical size={18} className="text-purple-500 fill-purple-50" />
+                            <FlaskConical size={18} className="text-brand-violet fill-brand-violet/5" />
                         )}
                     </div>
                     <div>
-                        <p className="font-black text-[#1e266d] tracking-tight">{item.name}</p>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Academic Unit</p>
+                        <p className="font-black text-slate-900 tracking-tight italic leading-tight">{item.name}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 opacity-60">Academic Unit</p>
                     </div>
                 </div>
             ),
@@ -37,25 +47,25 @@ export function SubjectsTable({ subjects }: { subjects: any[] }) {
         {
             header: "Classification",
             accessorKey: "type" as const,
-            cell: (item: any) => (
+            cell: (item: Subject) => (
                 <span className={cn(
-                    "px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm",
-                    item.type === "theory" ? "bg-amber-50 text-amber-700 border-amber-100" :
-                        item.type === "practical" ? "bg-purple-50 text-purple-700 border-purple-100" :
-                            "bg-indigo-50 text-indigo-700 border-indigo-100"
+                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-premium backdrop-blur-md italic",
+                    item.type === "theory" ? "bg-amber-50/50 text-amber-700 border-amber-100/50" :
+                        item.type === "practical" ? "bg-brand-violet/5 text-brand-violet border-brand-violet/10" :
+                            "bg-brand-indigo/5 text-brand-indigo border-brand-indigo/10"
                 )}>
-                    {item.type}
+                    {item.type} Space
                 </span>
             ),
         },
         {
             header: "Distribution",
             accessorKey: "_count" as const,
-            cell: (item: any) => (
+            cell: (item: Subject) => (
                 <div className="flex items-center gap-2">
-                    <Shapes size={14} className="text-blue-400" />
-                    <span className="text-xs font-black text-gray-500 italic">
-                        {item._count?.classes || 0} Departments
+                    <Shapes size={14} className="text-brand-indigo opacity-50" />
+                    <span className="text-[11px] font-black text-slate-500 italic">
+                        {item._count?.classes || 0} Specializations
                     </span>
                 </div>
             ),

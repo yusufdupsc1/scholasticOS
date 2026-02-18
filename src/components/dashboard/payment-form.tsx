@@ -41,7 +41,7 @@ export function PaymentForm({ onSuccess }: PaymentFormProps) {
         },
     });
 
-    const onSubmit = async (data: PaymentFormValues) => {
+    const onSubmit = async (_data: PaymentFormValues) => {
         setLoading(true);
         // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 1500));

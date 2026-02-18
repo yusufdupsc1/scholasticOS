@@ -4,12 +4,25 @@ import { DataTable } from "@/components/shared/data-table";
 import { cn } from "@/lib/utils";
 import { UserCheck, UserX, Clock } from "lucide-react";
 
-export function AttendanceTable({ attendance }: { attendance: any[] }) {
+interface AttendanceRecord {
+    id: string;
+    date: Date;
+    status: string;
+    remarks: string | null;
+    student: {
+        firstName: string;
+        lastName: string;
+        admissionNo: string;
+        class: { name: string };
+    };
+}
+
+export function AttendanceTable({ attendance }: { attendance: AttendanceRecord[] }) {
     const columns = [
         {
             header: "Date",
             accessorKey: "date" as const,
-            cell: (item: any) => (
+            cell: (item: AttendanceRecord) => (
                 <span className="text-xs font-medium text-gray-600">
                     {new Date(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                 </span>
@@ -18,7 +31,7 @@ export function AttendanceTable({ attendance }: { attendance: any[] }) {
         {
             header: "Student",
             accessorKey: "student" as const,
-            cell: (item: any) => (
+            cell: (item: AttendanceRecord) => (
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px] border border-blue-100 uppercase">
                         {item.student.firstName[0]}{item.student.lastName[0]}
@@ -33,7 +46,7 @@ export function AttendanceTable({ attendance }: { attendance: any[] }) {
         {
             header: "Status",
             accessorKey: "status" as const,
-            cell: (item: any) => (
+            cell: (item: AttendanceRecord) => (
                 <span className={cn(
                     "px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit border",
                     item.status === "present" ? "bg-green-50 text-green-700 border-green-100" :
@@ -48,7 +61,7 @@ export function AttendanceTable({ attendance }: { attendance: any[] }) {
         {
             header: "Remarks",
             accessorKey: "remarks" as const,
-            cell: (item: any) => (
+            cell: (item: AttendanceRecord) => (
                 <span className="text-xs text-gray-500 italic max-w-[150px] truncate block">
                     {item.remarks || '--'}
                 </span>

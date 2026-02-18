@@ -2,14 +2,25 @@
 
 import { DataTable } from "@/components/shared/data-table";
 import { cn } from "@/lib/utils";
-import { FileText, Calendar, Trophy, Percent, Clock, Target } from "lucide-react";
+import { Calendar, Trophy, Clock } from "lucide-react";
 
-export function ExamsTable({ exams }: { exams: any[] }) {
+interface Exam {
+  id: string;
+  name: string;
+  type: string;
+  startDate: Date;
+  endDate: Date;
+  class: { name: string };
+  _count: { results: number };
+  results?: { marksObtained: number }[];
+}
+
+export function ExamsTable({ exams }: { exams: Exam[] }) {
   const columns = [
     {
       header: "Examination",
       accessorKey: "name" as const,
-      cell: (item: any) => (
+      cell: (item: Exam) => (
         <div className="flex items-center gap-4 group cursor-pointer">
           <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center border border-orange-100 shadow-sm transition-transform group-hover:scale-110">
             <Trophy size={20} className="fill-orange-100" />
@@ -27,7 +38,7 @@ export function ExamsTable({ exams }: { exams: any[] }) {
     {
       header: "Grade Level",
       accessorKey: "class" as const,
-      cell: (item: any) => (
+      cell: (item: Exam) => (
         <span className="text-xs font-black text-gray-600 uppercase tracking-widest bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
           {item.class.name}
         </span>
@@ -36,7 +47,7 @@ export function ExamsTable({ exams }: { exams: any[] }) {
     {
       header: "Schedule",
       accessorKey: "startDate" as const,
-      cell: (item: any) => (
+      cell: (item: Exam) => (
         <div className="space-y-1">
           <div className="flex items-center gap-1.5 text-xs font-bold text-gray-600">
             <Calendar size={12} className="text-blue-500" />
@@ -54,7 +65,7 @@ export function ExamsTable({ exams }: { exams: any[] }) {
     {
       header: "Participation",
       accessorKey: "_count" as const,
-      cell: (item: any) => (
+      cell: (item: Exam) => (
         <div className="flex items-center gap-2">
           <div className="flex -space-x-2">
             {[1, 2, 3].map((_, i) => (
@@ -72,10 +83,10 @@ export function ExamsTable({ exams }: { exams: any[] }) {
     {
       header: "Performance",
       accessorKey: "results" as const,
-      cell: (item: any) => {
+      cell: (item: Exam) => {
         const results = item.results || [];
         const avg = results.length > 0
-          ? (results.reduce((acc: number, curr: any) => acc + curr.marksObtained, 0) / (results.length * 100)) * 100
+          ? (results.reduce((acc: number, curr: { marksObtained: number }) => acc + curr.marksObtained, 0) / (results.length * 100)) * 100
           : 0;
 
         return (

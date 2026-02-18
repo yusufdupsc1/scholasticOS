@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     }
 }
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
     try {
         // Multi-Tenancy: Scoped to School
         const school = await prisma.school.findFirst();

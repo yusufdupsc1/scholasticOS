@@ -4,19 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
     LayoutDashboard,
-    Settings,
     GraduationCap,
     BookOpen,
-    CreditCard,
     Banknote,
     ClipboardCheck,
     Calendar,
     Home,
     UserRound,
-    MessageSquare,
-    Smartphone,
-    Video,
-    FileQuestion,
     FileText,
     FileBadge,
     PieChart,
@@ -66,39 +60,43 @@ export function Sidebar() {
 
     return (
         <aside className={cn(
-            "fixed left-0 top-0 h-screen bg-[#0f172a] text-white transition-all duration-500 z-50 flex flex-col shadow-2xl",
+            "fixed left-6 top-6 bottom-6 transition-all duration-700 z-50 flex flex-col group/sidebar",
+            "glass shadow-premium rounded-[2.5rem] overflow-hidden",
             collapsed ? "w-24" : "w-72"
         )}>
             {/* Logo Section */}
             <div className="p-8 flex items-center justify-between shrink-0">
                 {!collapsed && (
                     <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         className="flex items-center gap-3"
                     >
-                        <div className="w-10 h-10 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shadow-blue-500/20">S</div>
-                        <span className="font-black text-2xl tracking-tighter uppercase italic">Skooly</span>
+                        <div className="w-12 h-12 bg-premium-gradient rounded-2xl flex items-center justify-center font-black text-xl text-white shadow-lg shadow-indigo-500/30 rotate-3">S</div>
+                        <div className="flex flex-col">
+                            <span className="font-plus-jakarta font-black text-xl tracking-tighter text-brand-slate leading-none">Scholastic</span>
+                            <span className="text-[10px] font-black text-brand-indigo tracking-[0.2em] uppercase mt-1">OS 2.0</span>
+                        </div>
                     </motion.div>
                 )}
                 <button
                     onClick={() => setCollapsed(!collapsed)}
-                    className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white/50 hover:text-white"
+                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all text-slate-400 hover:text-brand-indigo shadow-sm"
                 >
                     {collapsed ? <ChevronRight size={20} /> : <Menu size={20} />}
                 </button>
             </div>
 
             {/* Navigation */}
-            <div className="flex-1 overflow-y-auto no-scrollbar py-2 px-4 space-y-8">
+            <div className="flex-1 overflow-y-auto no-scrollbar py-6 px-4 space-y-10">
                 {menuItems.map((group, idx) => (
-                    <div key={idx} className="space-y-2">
+                    <div key={idx} className="space-y-4">
                         {!collapsed && (
-                            <h3 className="text-[10px] font-black text-white/30 px-4 tracking-[0.2em] uppercase mb-4">
+                            <h3 className="text-[10px] font-black text-slate-400 px-5 tracking-[0.25em] uppercase opacity-70">
                                 {group.group}
                             </h3>
                         )}
-                        <div className="space-y-1">
+                        <div className="space-y-1.5 px-2">
                             {group.items.map((item) => {
                                 const isActive = pathname === item.href;
                                 return (
@@ -106,23 +104,23 @@ export function Sidebar() {
                                         key={item.name}
                                         href={item.href}
                                         className={cn(
-                                            "flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative",
+                                            "flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-500 group relative overflow-hidden",
                                             isActive
-                                                ? "bg-blue-600 shadow-lg shadow-blue-500/25 text-white"
-                                                : "text-white/50 hover:bg-white/5 hover:text-white"
+                                                ? "bg-slate-900 text-white shadow-xl shadow-slate-900/10"
+                                                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                                         )}
                                     >
-                                        <item.icon size={22} className={cn(
-                                            "shrink-0 transition-transform duration-300 group-hover:scale-110",
-                                            isActive ? "text-white" : "text-white/40 group-hover:text-white"
+                                        <item.icon size={20} className={cn(
+                                            "shrink-0 transition-all duration-500 group-hover:rotate-6",
+                                            isActive ? "text-white" : "text-slate-400 group-hover:text-slate-900"
                                         )} />
                                         {!collapsed && (
-                                            <span className="text-[15px] font-bold tracking-tight">{item.name}</span>
+                                            <span className="text-[14px] font-bold tracking-tight font-plus-jakarta">{item.name}</span>
                                         )}
-                                        {isActive && !collapsed && (
+                                        {isActive && (
                                             <motion.div
-                                                layoutId="active-pill"
-                                                className="absolute right-2 w-1.5 h-1.5 bg-white rounded-full"
+                                                layoutId="active-nav-glow"
+                                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none"
                                             />
                                         )}
                                     </Link>
@@ -133,24 +131,26 @@ export function Sidebar() {
                 ))}
             </div>
 
-            {/* Bottom Upgrade Card */}
-            {!collapsed && (
-                <div className="p-6 mt-auto">
-                    <div className="p-6 bg-gradient-to-br from-indigo-500/20 to-blue-500/20 rounded-[2rem] border border-white/10 backdrop-blur-md relative overflow-hidden group">
-                        <div className="relative z-10">
-                            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
-                                <Sparkles size={20} className="text-white" />
+            {/* Bottom Section: Pro Badge */}
+            <div className="p-6 mt-auto">
+                <div className="p-6 bg-slate-900 rounded-[2rem] relative overflow-hidden group/card shadow-2xl">
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm">
+                                <Sparkles size={16} className="text-white" />
                             </div>
-                            <p className="text-sm font-black text-white mb-1 uppercase tracking-wider">Premium Plus</p>
-                            <p className="text-[11px] text-white/50 mb-4 font-medium">Unlock advanced analytics and bulk operations.</p>
-                            <button className="w-full py-3 bg-white text-[#0f172a] rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform active:scale-95 shadow-xl shadow-white/5">
-                                Upgrade Now
-                            </button>
+                            <span className="text-[10px] font-black text-white/50 tracking-[0.2em] uppercase">Enterprise</span>
                         </div>
-                        <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                        <p className="text-sm font-bold text-white mb-4 leading-relaxed font-plus-jakarta">Unlock the full power of ScholasticOS</p>
+                        <button className="w-full py-3.5 bg-white text-slate-900 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-xl active:scale-95">
+                            Get Access
+                        </button>
                     </div>
+                    {/* Decorative Gradients */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-indigo/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-brand-violet/20 blur-2xl rounded-full translate-y-1/2 -translate-x-1/2"></div>
                 </div>
-            )}
+            </div>
         </aside>
     );
 }
