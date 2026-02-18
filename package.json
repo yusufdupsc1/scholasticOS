@@ -10,7 +10,8 @@
     "db:push": "npx prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "npx prisma studio",
-    "db:reset": "npx prisma db push --force-reset && npx tsx prisma/seed.ts"
+    "db:reset": "npx prisma db push --force-reset && npx tsx prisma/seed.ts",
+    "test:smoke:auth": "node scripts/smoke-auth.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

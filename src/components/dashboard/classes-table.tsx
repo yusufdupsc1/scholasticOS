@@ -13,7 +13,7 @@ interface Class {
     id: string;
     name: string;
     section: string | null;
-    capacity: number;
+    capacity: number | null;
     classTeacher: ClassTeacher | null;
     _count: {
         students: number;
@@ -72,11 +72,12 @@ export function ClassesTable({ classes }: { classes: Class[] }) {
             accessorKey: "_count" as const,
             cell: (item: Class) => {
                 const enrollment = item._count?.students || 0;
-                const percentage = Math.round((enrollment / item.capacity) * 100);
+                const capacity = item.capacity || 0;
+                const percentage = capacity > 0 ? Math.min(100, Math.round((enrollment / capacity) * 100)) : 0;
                 return (
                     <div className="space-y-3 w-40">
                         <div className="flex justify-between items-center px-1">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{enrollment} Capacity</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{enrollment} / {capacity || "N/A"}</span>
                             <span className="text-[10px] font-black text-brand-indigo italic">{percentage}%</span>
                         </div>
                         <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden p-[2px] border border-slate-200">

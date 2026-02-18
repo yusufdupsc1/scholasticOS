@@ -24,12 +24,13 @@ const studentSchema = z.object({
 type StudentFormValues = z.infer<typeof studentSchema>;
 
 interface StudentFormProps {
-    classes: { id: string; name: string; section: string }[];
+    classes: { id: string; name: string; section: string | null }[];
     onSuccess: () => void;
 }
 
 export function StudentForm({ classes, onSuccess }: StudentFormProps) {
     const [loading, setLoading] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
     const {
         register,
@@ -44,21 +45,24 @@ export function StudentForm({ classes, onSuccess }: StudentFormProps) {
 
     const onSubmit = async (data: StudentFormValues) => {
         setLoading(true);
+        setFormError(null);
         try {
             const response = await fetch("/api/students", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify(data),
             });
 
             if (response.ok) {
                 onSuccess();
             } else {
-                alert("Failed to create student");
+                const payload = await response.json().catch(() => null);
+                setFormError(payload?.error || "Failed to create student");
             }
         } catch (error) {
             console.error(error);
-            alert("An error occurred");
+            setFormError("A network error occurred. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -66,6 +70,11 @@ export function StudentForm({ classes, onSuccess }: StudentFormProps) {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            {formError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-600">
+                    {formError}
+                </div>
+            ) : null}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Personal Information */}
                 <div className="space-y-4">
@@ -150,7 +159,7 @@ export function StudentForm({ classes, onSuccess }: StudentFormProps) {
                                     <option value="">Select Class</option>
                                     {classes.map((c) => (
                                         <option key={c.id} value={c.id}>
-                                            {c.name} - {c.section}
+                                            {c.name} - {c.section || "General"}
                                         </option>
                                     ))}
                                 </select>

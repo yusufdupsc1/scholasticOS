@@ -1,10 +1,45 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { canReadSchoolData, canWriteSchoolData, getSessionUserFromRequest } from "@/lib/session";
+import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 
-export async function POST(req: Request) {
+const employeePayloadSchema = z.object({
+    firstName: z.string().trim().min(2),
+    lastName: z.string().trim().min(2),
+    employeeId: z.string().trim().min(3),
+    designation: z.string().trim().min(2),
+    department: z.string().trim().min(2),
+    gender: z.enum(["male", "female", "other"]),
+    dateOfBirth: z.string().min(1),
+    phone: z.string().trim().min(5),
+    email: z.string().trim().email(),
+    baseSalary: z.coerce.number().positive(),
+    joiningDate: z.string().min(1),
+});
+
+export async function POST(req: NextRequest) {
+    const sessionUser = await getSessionUserFromRequest(req);
+    if (!sessionUser) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!canWriteSchoolData(sessionUser.role)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     try {
         const body = await req.json();
+        const parsedPayload = employeePayloadSchema.safeParse(body);
+
+        if (!parsedPayload.success) {
+            return NextResponse.json(
+                { error: parsedPayload.error.issues[0]?.message ?? "Invalid employee payload" },
+                { status: 400 }
+            );
+        }
+
         const {
             firstName,
             lastName,
@@ -17,29 +52,22 @@ export async function POST(req: Request) {
             email,
             baseSalary,
             joiningDate,
-        } = body;
+        } = parsedPayload.data;
 
-        // Multi-Tenancy Context
-        const school = await prisma.school.findFirst();
-        if (!school) {
-            return new NextResponse("School context unavailable", { status: 404 });
-        }
-
-        // Atomic Transaction: Create User Account & Employee Profile
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Create Login User
             const hashedPassword = await bcrypt.hash("employee123", 12);
+            const normalizedEmail = email.toLowerCase();
+
             await tx.user.create({
                 data: {
-                    email,
+                    email: normalizedEmail,
                     password: hashedPassword,
                     name: `${firstName} ${lastName}`,
                     role: designation.toLowerCase().includes("admin") ? "admin" : "teacher",
-                    schoolId: school.id,
-                }
+                    schoolId: sessionUser.schoolId,
+                },
             });
 
-            // 2. Create Employee Profile
             const employee = await tx.employee.create({
                 data: {
                     firstName,
@@ -50,10 +78,10 @@ export async function POST(req: Request) {
                     gender,
                     dateOfBirth: new Date(dateOfBirth),
                     phone,
-                    email,
-                    baseSalary: parseFloat(baseSalary),
+                    email: normalizedEmail,
+                    baseSalary,
                     joiningDate: new Date(joiningDate),
-                    schoolId: school.id,
+                    schoolId: sessionUser.schoolId,
                     status: "active",
                 },
             });
@@ -63,19 +91,32 @@ export async function POST(req: Request) {
 
         return NextResponse.json(result);
     } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            return NextResponse.json(
+                { error: "Employee ID or email already exists" },
+                { status: 409 }
+            );
+        }
+
         console.error("[EMPLOYEES_POST]", error);
-        return new NextResponse("Internal Error", { status: 500 });
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
 
-export async function GET(_req: Request) {
-    try {
-        const school = await prisma.school.findFirst();
-        if (!school) return NextResponse.json([]);
+export async function GET(req: NextRequest) {
+    const sessionUser = await getSessionUserFromRequest(req);
+    if (!sessionUser) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
+    if (!canReadSchoolData(sessionUser.role)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    try {
         const employees = await prisma.employee.findMany({
             where: {
-                schoolId: school.id,
+                schoolId: sessionUser.schoolId,
             },
             orderBy: {
                 firstName: "asc",
@@ -85,6 +126,6 @@ export async function GET(_req: Request) {
         return NextResponse.json(employees);
     } catch (error) {
         console.error("[EMPLOYEES_GET]", error);
-        return new NextResponse("Internal Error", { status: 500 });
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }

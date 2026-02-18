@@ -15,6 +15,11 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-inter)", "sans-serif"],
+        "plus-jakarta": ["var(--font-plus-jakarta)", "sans-serif"],
+        inter: ["var(--font-inter)", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

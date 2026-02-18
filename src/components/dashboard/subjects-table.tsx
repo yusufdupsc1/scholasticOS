@@ -6,7 +6,7 @@ import { FlaskConical, Library, Shapes } from "lucide-react";
 
 interface Subject {
     id: string;
-    code: string;
+    code: string | null;
     name: string;
     type: string;
     _count: {
@@ -21,7 +21,7 @@ export function SubjectsTable({ subjects }: { subjects: Subject[] }) {
             accessorKey: "code" as const,
             cell: (item: Subject) => (
                 <span className="font-mono font-black text-brand-indigo text-[10px] uppercase tracking-[0.2em] bg-brand-indigo/5 border border-brand-indigo/10 px-3 py-1.5 rounded-xl shadow-sm">
-                    {item.code}
+                    {item.code || "N/A"}
                 </span>
             ),
         },

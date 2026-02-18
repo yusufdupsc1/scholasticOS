@@ -41,13 +41,17 @@ export function Header() {
 
     const handleLogout = async () => {
         try {
-            await fetch('/api/auth/logout', { method: 'POST' });
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include',
+            });
         } catch (e) {
             console.error('Logout error', e);
         }
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
-        router.push('/login');
+        router.replace('/login');
+        router.refresh();
     };
 
     const userName = user?.name || 'System Admin';

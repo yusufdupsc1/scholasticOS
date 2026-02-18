@@ -23,7 +23,8 @@ export default function LoginPage() {
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
 
       const data = await res.json();
@@ -35,9 +36,8 @@ export default function LoginPage() {
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 800);
+      router.replace('/dashboard');
+      router.refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Invalid credentials';
       setError(message);
@@ -52,7 +52,7 @@ export default function LoginPage() {
       <div className="absolute inset-0 z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-indigo/20 rounded-full blur-[120px] animate-pulse"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-violet/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 contrast-150 brightness-100"></div>
+        <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.35)_1px,transparent_0)] [background-size:22px_22px]"></div>
       </div>
 
       <div className="relative z-10 w-full max-w-[1100px] flex flex-col lg:flex-row items-center gap-20 p-8">

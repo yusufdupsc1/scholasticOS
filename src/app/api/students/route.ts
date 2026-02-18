@@ -1,10 +1,46 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { canReadSchoolData, canWriteSchoolData, getSessionUserFromRequest } from "@/lib/session";
+import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 
-export async function POST(req: Request) {
+const studentPayloadSchema = z.object({
+    firstName: z.string().trim().min(2),
+    lastName: z.string().trim().min(2),
+    admissionNo: z.string().trim().min(3),
+    rollNo: z.string().trim().optional(),
+    classId: z.string().trim().min(1),
+    gender: z.enum(["male", "female", "other"]),
+    dateOfBirth: z.string().min(1),
+    phone: z.string().trim().optional(),
+    email: z.string().trim().email().optional().or(z.literal("")),
+    guardianName: z.string().trim().min(2),
+    guardianPhone: z.string().trim().min(5),
+    guardianRelation: z.string().trim().min(2),
+});
+
+export async function POST(req: NextRequest) {
+    const sessionUser = await getSessionUserFromRequest(req);
+    if (!sessionUser) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!canWriteSchoolData(sessionUser.role)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     try {
         const body = await req.json();
+        const parsedPayload = studentPayloadSchema.safeParse(body);
+
+        if (!parsedPayload.success) {
+            return NextResponse.json(
+                { error: parsedPayload.error.issues[0]?.message ?? "Invalid student payload" },
+                { status: 400 }
+            );
+        }
+
         const {
             firstName,
             lastName,
@@ -18,31 +54,22 @@ export async function POST(req: Request) {
             guardianName,
             guardianPhone,
             guardianRelation,
-        } = body;
+        } = parsedPayload.data;
 
-        // Multi-Tenancy: In a real multi-tenant app, schoolId would come from the user's session.
-        // For this demo, we use the first available school context.
-        const school = await prisma.school.findFirst();
-
-        if (!school) {
-            return new NextResponse("School context not found", { status: 404 });
-        }
-
-        // Atomic Transaction: Create User Account & Student Profile together
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Create Login User
             const hashedPassword = await bcrypt.hash("student123", 12);
+            const normalizedEmail = email?.trim().toLowerCase();
+
             await tx.user.create({
                 data: {
-                    email: email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@eskooly.com`,
+                    email: normalizedEmail || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@eskooly.com`,
                     password: hashedPassword,
                     name: `${firstName} ${lastName}`,
                     role: "student",
-                    schoolId: school.id,
-                }
+                    schoolId: sessionUser.schoolId,
+                },
             });
 
-            // 2. Create Student Profile
             const student = await tx.student.create({
                 data: {
                     firstName,
@@ -52,12 +79,12 @@ export async function POST(req: Request) {
                     classId,
                     gender,
                     dateOfBirth: new Date(dateOfBirth),
-                    phone,
-                    email,
+                    phone: phone || null,
+                    email: normalizedEmail || null,
                     guardianName,
                     guardianPhone,
                     guardianRelation,
-                    schoolId: school.id,
+                    schoolId: sessionUser.schoolId,
                     status: "active",
                 },
             });
@@ -67,20 +94,32 @@ export async function POST(req: Request) {
 
         return NextResponse.json(result);
     } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            return NextResponse.json(
+                { error: "Student admission number, roll number, or email already exists" },
+                { status: 409 }
+            );
+        }
+
         console.error("[STUDENTS_POST]", error);
-        return new NextResponse("Internal Error", { status: 500 });
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
 
-export async function GET(_req: Request) {
-    try {
-        // Multi-Tenancy: Scoped to School
-        const school = await prisma.school.findFirst();
-        if (!school) return NextResponse.json([]);
+export async function GET(req: NextRequest) {
+    const sessionUser = await getSessionUserFromRequest(req);
+    if (!sessionUser) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
+    if (!canReadSchoolData(sessionUser.role)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    try {
         const students = await prisma.student.findMany({
             where: {
-                schoolId: school.id,
+                schoolId: sessionUser.schoolId,
             },
             include: {
                 class: true,
@@ -93,6 +132,6 @@ export async function GET(_req: Request) {
         return NextResponse.json(students);
     } catch (error) {
         console.error("[STUDENTS_GET]", error);
-        return new NextResponse("Internal Error", { status: 500 });
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }

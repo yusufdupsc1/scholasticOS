@@ -15,7 +15,7 @@ interface Employee {
     lastName: string;
     gender: string;
     designation: string;
-    department: string;
+    department: string | null;
     email: string;
     phone: string;
     joiningDate: Date;
@@ -57,7 +57,7 @@ export function EmployeesTable({ employees }: { employees: Employee[] }) {
             cell: (item: Employee) => (
                 <div>
                     <p className="text-sm font-bold text-gray-700">{item.designation}</p>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.department}</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.department || "General"}</p>
                 </div>
             ),
         },

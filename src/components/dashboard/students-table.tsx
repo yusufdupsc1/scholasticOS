@@ -14,17 +14,17 @@ interface Student {
     firstName: string;
     lastName: string;
     gender: string;
-    rollNo: string;
+    rollNo: string | null;
     class: { name: string };
-    guardianName: string;
-    guardianRelation: string;
+    guardianName: string | null;
+    guardianRelation: string | null;
     phone: string | null;
     status: string;
 }
 
 interface StudentsTableProps {
     students: Student[];
-    classes: { id: string; name: string }[];
+    classes: { id: string; name: string; section: string | null }[];
 }
 
 export function StudentsTable({ students, classes }: StudentsTableProps) {
@@ -67,7 +67,7 @@ export function StudentsTable({ students, classes }: StudentsTableProps) {
                     </div>
                     <div>
                         <p className="text-[13px] font-black text-slate-700 leading-tight uppercase tracking-tight">{item.class.name}</p>
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 opacity-60">Roll: {item.rollNo}</p>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 opacity-60">Roll: {item.rollNo || "TBD"}</p>
                     </div>
                 </div>
             ),
@@ -77,8 +77,8 @@ export function StudentsTable({ students, classes }: StudentsTableProps) {
             accessorKey: "guardianName" as const,
             cell: (item: Student) => (
                 <div>
-                    <p className="text-[13px] font-black text-slate-700 tracking-tight italic">{item.guardianName}</p>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 opacity-60 italic">{item.guardianRelation} Auth</p>
+                    <p className="text-[13px] font-black text-slate-700 tracking-tight italic">{item.guardianName || "Guardian Not Linked"}</p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 opacity-60 italic">{(item.guardianRelation || "Pending") + " Auth"}</p>
                 </div>
             ),
         },

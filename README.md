@@ -70,21 +70,34 @@ ScholasticOS has been fully refactored to meet "Showcase Grade" standards, movin
     npm install
     ```
 
-3.  **Database Migration & Seeding**
+3.  **Environment Setup**
+    ```bash
+    cp .env.example .env
+    ```
+
+4.  **Database Migration & Seeding**
     Initialize the local database and populate with v2.0 mock data:
     ```bash
     npm run db:reset
     ```
 
-4.  **Run Development Server**
+5.  **Run Development Server**
     ```bash
     npm run dev
+    ```
+
+6.  **Run Auth Smoke Test**
+    In another terminal (while dev server is running):
+    ```bash
+    npm run test:smoke:auth
     ```
 
 ### Local Access (Mock Credentials)
 
 - **Email:** `admin@eskooly.com`
 - **Password:** `admin123`
+
+> In development, if no users exist, logging in with the demo credentials will bootstrap the first admin user.
 
 ---
 

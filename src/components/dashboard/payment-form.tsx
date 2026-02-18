@@ -29,6 +29,7 @@ interface PaymentFormProps {
 
 export function PaymentForm({ onSuccess }: PaymentFormProps) {
     const [loading, setLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const {
         register,
@@ -41,17 +42,23 @@ export function PaymentForm({ onSuccess }: PaymentFormProps) {
         },
     });
 
-    const onSubmit = async (_data: PaymentFormValues) => {
+    const onSubmit = async (data: PaymentFormValues) => {
         setLoading(true);
+        setSuccessMessage(null);
         // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 1500));
         setLoading(false);
+        setSuccessMessage(`Payment recorded for ${data.studentId}.`);
         onSuccess();
-        alert("Payment Recorded Successfully! Receipt Generated.");
     };
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {successMessage ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-700">
+                    {successMessage}
+                </div>
+            ) : null}
             <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-1">
                     <label className="text-xs font-bold text-gray-700 uppercase">Select Student</label>

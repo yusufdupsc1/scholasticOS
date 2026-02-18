@@ -1,31 +1,40 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { createAuthToken } from '@/lib/session';
+import { z } from 'zod';
+
+const authSchema = z.object({
+  email: z.string().trim().email('Please enter a valid email address').transform((value) => value.toLowerCase()),
+  password: z.string().min(6, 'Password must be at least 6 characters').max(72),
+});
 
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
-    const email = String(payload?.email ?? '').trim().toLowerCase();
-    const password = String(payload?.password ?? '');
+    const parsedPayload = authSchema.safeParse(payload);
 
-    if (!email || !password) {
+    if (!parsedPayload.success) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: parsedPayload.error.issues[0]?.message ?? 'Invalid login payload' },
         { status: 400 }
       );
     }
 
-    let user = await prisma.user.findFirst({
+    const { email, password } = parsedPayload.data;
+
+    let user = await prisma.user.findUnique({
       where: { email },
-      include: { school: true }
+      include: { school: true },
     });
 
     if (!user) {
       const demoEmail = (process.env.DEMO_ADMIN_EMAIL ?? 'admin@eskooly.com').toLowerCase();
       const demoPassword = process.env.DEMO_ADMIN_PASSWORD ?? 'admin123';
+      const allowBootstrap = process.env.NODE_ENV !== 'production';
       const canBootstrapDemoAdmin = email === demoEmail && password === demoPassword;
 
-      if (!canBootstrapDemoAdmin) {
+      if (!allowBootstrap || !canBootstrapDemoAdmin) {
         return NextResponse.json(
           { error: 'Invalid credentials' },
           { status: 401 }
@@ -38,7 +47,7 @@ export async function POST(request: Request) {
         school = await prisma.school.create({
           data: {
             name: 'eSkooly International School',
-            alias: 'eskooly-dhaka',
+            alias: `eskooly-${Date.now()}`,
           },
         });
       }
@@ -63,9 +72,8 @@ export async function POST(request: Request) {
       });
     }
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
-    
+
     if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
@@ -73,8 +81,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create simple token (in production, use JWT)
-    const token = Buffer.from(`${user.id}:${Date.now()}`).toString('base64');
+    const token = createAuthToken(user.id);
 
     const response = NextResponse.json({
       token,
@@ -87,7 +94,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // Set auth cookie for middleware to recognize
     response.cookies.set('auth_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -95,6 +101,8 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });
+
+    response.headers.set('Cache-Control', 'no-store');
 
     return response;
   } catch (error) {

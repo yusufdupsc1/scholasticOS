@@ -28,6 +28,7 @@ interface EmployeeFormProps {
 
 export function EmployeeForm({ onSuccess }: EmployeeFormProps) {
     const [loading, setLoading] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
     const {
         register,
@@ -43,10 +44,12 @@ export function EmployeeForm({ onSuccess }: EmployeeFormProps) {
 
     const onSubmit = async (values: EmployeeFormValues) => {
         setLoading(true);
+        setFormError(null);
         try {
             const response = await fetch("/api/employees", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({
                     ...values,
                     baseSalary: parseFloat(values.baseSalary)
@@ -56,11 +59,12 @@ export function EmployeeForm({ onSuccess }: EmployeeFormProps) {
             if (response.ok) {
                 onSuccess();
             } else {
-                alert("Failed to create employee");
+                const payload = await response.json().catch(() => null);
+                setFormError(payload?.error || "Failed to create employee");
             }
         } catch (error) {
             console.error(error);
-            alert("An error occurred");
+            setFormError("A network error occurred. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -68,6 +72,11 @@ export function EmployeeForm({ onSuccess }: EmployeeFormProps) {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            {formError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-600">
+                    {formError}
+                </div>
+            ) : null}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Personal Information */}
                 <div className="space-y-4">
