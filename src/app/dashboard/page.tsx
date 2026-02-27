@@ -35,7 +35,18 @@ async function getAttendanceData(institutionId: string) {
       orderBy: { date: "asc" },
     });
 
-    return data;
+    // Prisma groupBy returns `_count` as an object (`{ _all: number }`).
+    // Normalize to a plain number to avoid rendering object values in React.
+    return data.map(
+      (row: { date: Date; status: string; _count?: number | { _all?: number } }) => ({
+        date: row.date,
+        status: row.status,
+        _count:
+          typeof row._count === "number"
+            ? row._count
+            : Number(row._count?._all ?? 0),
+      }),
+    );
   } catch (error) {
     console.error("[DASHBOARD_ATTENDANCE]", error);
     return [];
