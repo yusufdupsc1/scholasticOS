@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles, Users, BookOpen, BarChart3, ShieldCheck, Zap } from "lucide-react";
-import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import type { Metadata } from "next";
 
@@ -17,9 +16,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function Home() {
-  const session = await auth();
-
+export default function Home() {
   return (
     <div className="relative min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/20 overflow-hidden">
       {/* Background Effects (Fast loading CSS) */}
@@ -34,27 +31,17 @@ export default async function Home() {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-300">
               <Sparkles className="w-5 h-5 text-white animate-pulse-slow" />
             </div>
-            <span className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80">
+            <span className="text-lg font-bold tracking-tight text-foreground">
               scholaOps
             </span>
           </div>
           <div className="flex items-center gap-4">
-            {session ? (
-              <Button asChild className="rounded-full shadow-sm hover:shadow-md transition-all duration-300 bg-primary/90 hover:bg-primary">
-                <Link href="/dashboard">
-                  Dashboard <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" asChild className="hidden sm:inline-flex rounded-full px-6 hover:bg-muted/50 transition-colors duration-300">
-                  <Link href="/auth/login">Log in</Link>
-                </Button>
-                <Button asChild className="rounded-full shadow-sm hover:shadow-primary/25 hover:shadow-lg transition-all duration-300 bg-primary/95 hover:bg-primary px-6">
-                  <Link href="/auth/register">Get Started</Link>
-                </Button>
-              </>
-            )}
+            <Button variant="ghost" asChild className="hidden sm:inline-flex rounded-full px-6 hover:bg-muted/50 transition-colors duration-300">
+              <Link href="/auth/login" prefetch={false}>Log in</Link>
+            </Button>
+            <Button asChild className="rounded-full shadow-sm hover:shadow-primary/25 hover:shadow-lg transition-all duration-300 bg-primary/95 hover:bg-primary px-6">
+              <Link href="/auth/register" prefetch={false}>Get Started</Link>
+            </Button>
           </div>
         </div>
       </header>
@@ -74,28 +61,28 @@ export default async function Home() {
 
             <h1 className="text-5xl sm:text-7xl lg:text-8xl font-bold tracking-tighter max-w-5xl text-balance leading-[1.1]">
               The operations <br className="hidden sm:block" />
-              <span className="gradient-text">standard of excellence</span> <br className="hidden sm:block" />
+              <span className="text-primary">standard of excellence</span> <br className="hidden sm:block" />
               for modern schools
             </h1>
 
-            <p className="text-lg sm:text-xl text-muted-foreground/90 max-w-2xl text-balance leading-relaxed">
+            <p className="max-w-2xl text-balance text-lg leading-relaxed text-muted-foreground sm:text-xl">
               Admissions, academics, finance, and communication—seamlessly integrated into one premium, zero-friction platform.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-6">
               <Button asChild size="lg" className="rounded-full h-14 px-8 text-base shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
-                <Link href={session ? "/dashboard" : "/auth/register"}>
+                <Link href="/auth/register" prefetch={false}>
                   Explore the Platform <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
               </Button>
               <Button variant="outline" asChild size="lg" className="rounded-full h-14 px-8 text-base border-border/50 bg-background/50 backdrop-blur-sm hover:bg-muted/50 hover:border-border transition-all duration-300">
-                <Link href="/auth/login">
+                <Link href="/auth/login" prefetch={false}>
                   Access Portal
                 </Link>
               </Button>
             </div>
 
-            <div className="pt-12 flex items-center gap-8 text-muted-foreground/60 text-sm font-medium">
+            <div className="pt-12 flex items-center gap-8 text-sm font-medium text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-accent" /> Lightning fast
               </div>
@@ -110,6 +97,7 @@ export default async function Home() {
       {/* Bento Grid Features */}
       <section className="relative z-10 pb-24 px-6">
         <div className="container mx-auto max-w-6xl">
+          <h2 className="mb-6 text-3xl font-semibold tracking-tight">Core Capabilities</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 stagger">
             <div className="md:col-span-2 group glass rounded-3xl p-8 hover:border-border/80 transition-all duration-500 overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
@@ -168,11 +156,11 @@ export default async function Home() {
 
       {/* Footer */}
       <footer className="border-t border-border/40 py-12 bg-background/40 relative z-10 backdrop-blur-sm">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left text-sm text-muted-foreground/80">
+        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left text-sm text-muted-foreground">
           <p className="font-medium">© {new Date().getFullYear()} scholaOps. Excellence in Operations.</p>
           <div className="flex gap-8">
-            <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+            <Link href="/privacy" prefetch={false} className="hover:text-foreground transition-colors">Privacy</Link>
+            <Link href="/terms" prefetch={false} className="hover:text-foreground transition-colors">Terms</Link>
             <Link href="https://github.com/scholaops" target="_blank" className="hover:text-foreground transition-colors">GitHub</Link>
           </div>
         </div>

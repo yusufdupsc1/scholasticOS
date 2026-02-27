@@ -22,12 +22,12 @@ module.exports = {
     },
     assert: {
       assertions: {
-        "categories:performance": ["error", { minScore: 0.75 }],
-        "categories:accessibility": ["error", { minScore: 0.92 }],
+        "categories:performance": ["error", { minScore: 0.9 }],
+        "categories:accessibility": ["error", { minScore: 0.9 }],
         "categories:best-practices": ["error", { minScore: 0.9 }],
         "categories:seo": ["error", { minScore: 0.9 }],
         "largest-contentful-paint": ["error", { maxNumericValue: 3000 }],
-        "total-blocking-time": ["error", { maxNumericValue: 850 }],
+        "total-blocking-time": ["error", { maxNumericValue: 300 }],
         "cumulative-layout-shift": ["error", { maxNumericValue: 0.1 }],
         "speed-index": ["error", { maxNumericValue: 4000 }],
       },

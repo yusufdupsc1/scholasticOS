@@ -1,13 +1,10 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from "next";
-import { SessionProvider } from "next-auth/react";
-import { Toaster } from "sonner";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://app.scholaops.com",
+    process.env.NEXT_PUBLIC_APP_URL || "https://scholaops1.vercel.app",
   ),
   title: {
     default: "scholaOps — Precision School Management",
@@ -58,25 +55,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased">
-        <NuqsAdapter>
-          <SessionProvider>
-            {children}
-            <Toaster
-              position="bottom-right"
-              richColors
-              closeButton
-              toastOptions={{
-                style: {
-                  background: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  color: "hsl(var(--foreground))",
-                },
-              }}
-            />
-          </SessionProvider>
-        </NuqsAdapter>
-      </body>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }

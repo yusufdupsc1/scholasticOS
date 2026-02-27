@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AppToaster } from "@/components/layout/app-toaster";
 
 export const metadata: Metadata = {
   robots: {
@@ -12,5 +13,10 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <>
+      {children}
+      <AppToaster />
+    </>
+  );
 }
