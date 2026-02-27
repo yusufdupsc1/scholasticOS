@@ -37,6 +37,16 @@ const STATUS_CONFIG: Record<AttendanceStatus, { label: string; icon: React.Eleme
     HOLIDAY: { label: "Holiday", icon: AlertCircle, color: "text-muted-foreground", bg: "bg-muted" },
 };
 
+const INTERACTIVE_STATUSES: Array<{
+    key: Exclude<AttendanceStatus, "HOLIDAY">;
+    symbol: string;
+}> = [
+    { key: "PRESENT", symbol: "P" },
+    { key: "ABSENT", symbol: "A" },
+    { key: "LATE", symbol: "L" },
+    { key: "EXCUSED", symbol: "E" },
+];
+
 export function AttendanceClient({ classes, selectedClassId, selectedDate, summary }: Props) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -158,41 +168,35 @@ export function AttendanceClient({ classes, selectedClassId, selectedDate, summa
                     <div className="divide-y divide-border/60">
                         {students.map(s => {
                             const status = attendanceMap[s.id] ?? "PRESENT";
-                            const statusOptions = (Object.keys(STATUS_CONFIG) as AttendanceStatus[]).filter(k => k !== "HOLIDAY");
                             return (
                                 <div key={s.id} className="flex flex-col gap-2 px-4 py-3 hover:bg-muted/30 transition-colors sm:flex-row sm:items-center sm:justify-between">
                                     <div className="min-w-0">
                                         <p className="font-medium text-sm">{s.firstName} {s.lastName}</p>
                                         <p className="text-xs text-muted-foreground font-mono">{s.studentId}</p>
                                     </div>
-                                    <div className="sm:hidden">
-                                        <Select value={status} onValueChange={(v) => setStatus(s.id, v as AttendanceStatus)}>
-                                            <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Select attendance status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {statusOptions.map((k) => (
-                                                    <SelectItem key={k} value={k}>
-                                                        {STATUS_CONFIG[k].label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="hidden flex-wrap justify-end gap-1.5 sm:flex">
-                                        {statusOptions.map(k => {
-                                            const c = STATUS_CONFIG[k];
+                                    <div className="w-full sm:w-auto">
+                                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:justify-end">
+                                        {INTERACTIVE_STATUSES.map(({ key, symbol }) => {
+                                            const c = STATUS_CONFIG[key];
                                             const Icon = c.icon;
                                             return (
                                                 <button
-                                                    key={k}
-                                                    onClick={() => setStatus(s.id, k)}
-                                                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all border ${status === k ? `${c.bg} ${c.color} border-current` : "border-border text-muted-foreground hover:border-muted-foreground"}`}
+                                                    key={key}
+                                                    onClick={() => setStatus(s.id, key)}
+                                                    className={`group inline-flex min-w-[4.5rem] items-center justify-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-95 ${status === key
+                                                        ? `${c.bg} ${c.color} border-current shadow-sm`
+                                                        : "border-border text-muted-foreground hover:border-muted-foreground hover:bg-muted/50"
+                                                        }`}
                                                 >
-                                                    <Icon className="h-3 w-3" />{c.label}
+                                                    <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${status === key ? "bg-white/70" : "bg-muted"}`}>
+                                                        {symbol}
+                                                    </span>
+                                                    <Icon className="h-3.5 w-3.5" />
+                                                    <span className="hidden sm:inline">{c.label}</span>
                                                 </button>
                                             );
                                         })}
+                                        </div>
                                     </div>
                                 </div>
                             );
