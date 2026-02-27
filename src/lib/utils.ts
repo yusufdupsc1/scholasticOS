@@ -2,14 +2,18 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+export const DEFAULT_LOCALE = "en-BD";
+export const DEFAULT_TIMEZONE = "Asia/Dhaka";
+export const DEFAULT_CURRENCY = "BDT";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export function formatCurrency(
   amount: number | string,
-  currency = "USD",
-  locale = "en-US"
+  currency = DEFAULT_CURRENCY,
+  locale = DEFAULT_LOCALE
 ): string {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   return new Intl.NumberFormat(locale, {
@@ -22,7 +26,8 @@ export function formatCurrency(
 
 export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString(DEFAULT_LOCALE, {
+    timeZone: DEFAULT_TIMEZONE,
     year: "numeric",
     month: "short",
     day: "numeric",

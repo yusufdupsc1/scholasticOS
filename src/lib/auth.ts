@@ -9,6 +9,89 @@ const AUTH_SECRETS = [
   process.env.NEXTAUTH_SECRET,
 ].filter((secret): secret is string => Boolean(secret));
 
+const ALLOW_DEMO_LOGIN = process.env.ALLOW_DEMO_LOGIN !== "false";
+
+const DEMO_INSTITUTION = {
+  slug: "scholaops-demo",
+  name: "scholaOps Academy",
+  email: "admin@school.edu",
+  city: "Palo Alto",
+  country: "US",
+  timezone: "America/Los_Angeles",
+  currency: "USD",
+};
+
+const DEMO_USERS = [
+  {
+    email: "admin@school.edu",
+    password: "admin123",
+    name: "Alex Admin",
+    role: "ADMIN",
+  },
+  {
+    email: "principal@school.edu",
+    password: "principal123",
+    name: "Dr. Sarah Chen",
+    role: "PRINCIPAL",
+  },
+] as const;
+
+async function provisionDemoUserIfNeeded(email: string, password: string) {
+  if (!ALLOW_DEMO_LOGIN) return null;
+
+  const demoUser = DEMO_USERS.find(
+    (candidate) => candidate.email === email && candidate.password === password,
+  );
+  if (!demoUser) return null;
+
+  const institution = await db.institution.upsert({
+    where: { slug: DEMO_INSTITUTION.slug },
+    update: {
+      name: DEMO_INSTITUTION.name,
+      email: DEMO_INSTITUTION.email,
+      city: DEMO_INSTITUTION.city,
+      country: DEMO_INSTITUTION.country,
+      timezone: DEMO_INSTITUTION.timezone,
+      currency: DEMO_INSTITUTION.currency,
+      isActive: true,
+    },
+    create: {
+      name: DEMO_INSTITUTION.name,
+      slug: DEMO_INSTITUTION.slug,
+      email: DEMO_INSTITUTION.email,
+      city: DEMO_INSTITUTION.city,
+      country: DEMO_INSTITUTION.country,
+      timezone: DEMO_INSTITUTION.timezone,
+      currency: DEMO_INSTITUTION.currency,
+    },
+  });
+
+  const hashedPassword = await bcrypt.hash(demoUser.password, 12);
+  const user = await db.user.upsert({
+    where: { email: demoUser.email },
+    update: {
+      name: demoUser.name,
+      password: hashedPassword,
+      role: demoUser.role,
+      isActive: true,
+      emailVerified: new Date(),
+      institutionId: institution.id,
+    },
+    create: {
+      name: demoUser.name,
+      email: demoUser.email,
+      password: hashedPassword,
+      role: demoUser.role,
+      isActive: true,
+      emailVerified: new Date(),
+      institutionId: institution.id,
+    },
+    include: { institution: { select: { name: true, slug: true } } },
+  });
+
+  return user;
+}
+
 const providers: any[] = [
   Credentials({
     name: "Credentials",
@@ -30,19 +113,29 @@ const providers: any[] = [
       }
 
       const normalizedEmail = email.trim().toLowerCase();
-      const user = await db.user.findUnique({
+      let user = await db.user.findUnique({
         where: { email: normalizedEmail },
         include: { institution: { select: { name: true, slug: true } } },
       });
 
-      if (!user?.password || !user.isActive) {
-        return null;
+      if (user?.password && user.isActive) {
+        const isValid = await bcrypt.compare(password, user.password);
+        if (isValid) {
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+            role: user.role,
+            institutionId: user.institutionId,
+            institutionName: user.institution.name,
+            institutionSlug: user.institution.slug,
+          };
+        }
       }
 
-      const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) {
-        return null;
-      }
+      user = await provisionDemoUserIfNeeded(normalizedEmail, password);
+      if (!user?.password || !user.isActive) return null;
 
       return {
         id: user.id,

@@ -33,6 +33,8 @@ interface Props {
     total: number; pages: number; currentPage: number; activeTab: string;
 }
 
+const NO_TEACHER_VALUE = "__no_teacher__";
+
 function ClassForm({ initial, teachers, onSuccess }: { initial?: ClassRow; teachers: Teacher[]; onSuccess: () => void }) {
     const [pending, startTransition] = useTransition();
     const [form, setForm] = useState<ClassFormData>({
@@ -87,10 +89,13 @@ function ClassForm({ initial, teachers, onSuccess }: { initial?: ClassRow; teach
             </div>
             <div className="space-y-1.5">
                 <Label>Class Teacher</Label>
-                <Select value={form.teacherId ?? ""} onValueChange={v => set("teacherId", v)}>
+                <Select
+                    value={form.teacherId ? form.teacherId : NO_TEACHER_VALUE}
+                    onValueChange={v => set("teacherId", v === NO_TEACHER_VALUE ? "" : v)}
+                >
                     <SelectTrigger><SelectValue placeholder="Select class teacher" /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value={NO_TEACHER_VALUE}>None</SelectItem>
                         {teachers.map(t => <SelectItem key={t.id} value={t.id}>{t.firstName} {t.lastName}</SelectItem>)}
                     </SelectContent>
                 </Select>
