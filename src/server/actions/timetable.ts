@@ -1,15 +1,15 @@
-// src/server/actions/timetable.ts
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { asPlainArray } from "@/lib/server/serializers";
 
 const TimetableEntrySchema = z.object({
   classId: z.string().min(1, "Class is required"),
   subjectId: z.string().min(1, "Subject is required"),
-  teacherId: z.string().optional(),
+  teacherId: z.string().min(1, "Teacher is required"),
   dayOfWeek: z.number().min(0).max(6),
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().min(1, "End time is required"),
@@ -43,17 +43,65 @@ async function getAuthContext() {
   };
 }
 
+function toWeeklySchedule(
+  entries: Array<{
+    id: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    subject: { id: string; name: string; code: string };
+    teacher: { id: string; firstName: string; lastName: string };
+    class: { id: string; name: string; grade: string; section: string };
+  }>,
+) {
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  return days.map((day, index) => ({
+    day,
+    dayIndex: index,
+    entries: entries
+      .filter((entry) => entry.dayOfWeek === index)
+      .map((entry) => ({
+        id: entry.id,
+        dayOfWeek: entry.dayOfWeek,
+        startTime: entry.startTime,
+        endTime: entry.endTime,
+        roomNumber: null,
+        subject: {
+          id: entry.subject.id,
+          name: entry.subject.name,
+          code: entry.subject.code,
+        },
+        teacher: {
+          id: entry.teacher.id,
+          firstName: entry.teacher.firstName,
+          lastName: entry.teacher.lastName,
+        },
+        class: {
+          id: entry.class.id,
+          name: entry.class.name,
+          grade: entry.class.grade,
+          section: entry.class.section,
+        },
+      })),
+  }));
+}
+
 export async function createTimetableEntry(
   formData: TimetableFormData,
 ): Promise<ActionResult<{ id: string }>> {
   try {
-    const { institutionId, userId } = await getAuthContext();
+    const { institutionId, userId, role } = await getAuthContext();
 
-    if (
-      !["SUPER_ADMIN", "ADMIN", "PRINCIPAL"].includes(
-        (await getAuthContext()).role,
-      )
-    ) {
+    if (!["SUPER_ADMIN", "ADMIN", "PRINCIPAL"].includes(role)) {
       return { success: false, error: "Insufficient permissions" };
     }
 
@@ -70,6 +118,16 @@ export async function createTimetableEntry(
     }
 
     const data = parsed.data;
+
+    const [classroom, subject, teacher] = await Promise.all([
+      db.class.findFirst({ where: { id: data.classId, institutionId } }),
+      db.subject.findFirst({ where: { id: data.subjectId, institutionId } }),
+      db.teacher.findFirst({ where: { id: data.teacherId, institutionId } }),
+    ]);
+
+    if (!classroom) return { success: false, error: "Class not found" };
+    if (!subject) return { success: false, error: "Subject not found" };
+    if (!teacher) return { success: false, error: "Teacher not found" };
 
     const hasConflict = await db.timetable.findFirst({
       where: {
@@ -106,16 +164,14 @@ export async function createTimetableEntry(
     }
 
     const entry = await db.$transaction(async (tx) => {
-      const e = await tx.timetable.create({
+      const created = await tx.timetable.create({
         data: {
           classId: data.classId,
           subjectId: data.subjectId,
-          teacherId: data.teacherId || null,
+          teacherId: data.teacherId,
           dayOfWeek: data.dayOfWeek,
           startTime: data.startTime,
           endTime: data.endTime,
-          roomNumber: data.roomNumber || null,
-          institutionId,
         },
       });
 
@@ -123,14 +179,13 @@ export async function createTimetableEntry(
         data: {
           action: "CREATE",
           entity: "Timetable",
-          entityId: e.id,
+          entityId: created.id,
           newValues: data,
           userId,
-          institutionId,
         },
       });
 
-      return e;
+      return created;
     });
 
     revalidatePath("/dashboard/timetable");
@@ -146,9 +201,9 @@ export async function updateTimetableEntry(
   formData: TimetableFormData,
 ): Promise<ActionResult> {
   try {
-    const { institutionId, role } = await getAuthContext();
+    const { institutionId, role, userId } = await getAuthContext();
 
-    if (!["SUPER_ADMIN", "ADMIN", "PRINCIPAL"].includes(role || "")) {
+    if (!["SUPER_ADMIN", "ADMIN", "PRINCIPAL"].includes(role)) {
       return { success: false, error: "Insufficient permissions" };
     }
 
@@ -164,18 +219,38 @@ export async function updateTimetableEntry(
       };
     }
 
-    const existing = await db.timetable.findFirst({
-      where: { id, institutionId },
-    });
+    const data = parsed.data;
+
+    const [existing, classroom, subject, teacher] = await Promise.all([
+      db.timetable.findFirst({
+        where: {
+          id,
+          class: { institutionId },
+        },
+      }),
+      db.class.findFirst({ where: { id: data.classId, institutionId } }),
+      db.subject.findFirst({ where: { id: data.subjectId, institutionId } }),
+      db.teacher.findFirst({ where: { id: data.teacherId, institutionId } }),
+    ]);
 
     if (!existing) {
       return { success: false, error: "Timetable entry not found" };
     }
+    if (!classroom) return { success: false, error: "Class not found" };
+    if (!subject) return { success: false, error: "Subject not found" };
+    if (!teacher) return { success: false, error: "Teacher not found" };
 
     await db.$transaction(async (tx) => {
       await tx.timetable.update({
         where: { id },
-        data: parsed.data,
+        data: {
+          classId: data.classId,
+          subjectId: data.subjectId,
+          teacherId: data.teacherId,
+          dayOfWeek: data.dayOfWeek,
+          startTime: data.startTime,
+          endTime: data.endTime,
+        },
       });
 
       await tx.auditLog.create({
@@ -183,10 +258,16 @@ export async function updateTimetableEntry(
           action: "UPDATE",
           entity: "Timetable",
           entityId: id,
-          oldValues: existing,
-          newValues: parsed.data,
-          userId: (await getAuthContext()).userId,
-          institutionId,
+          oldValues: {
+            classId: existing.classId,
+            subjectId: existing.subjectId,
+            teacherId: existing.teacherId,
+            dayOfWeek: existing.dayOfWeek,
+            startTime: existing.startTime,
+            endTime: existing.endTime,
+          },
+          newValues: data,
+          userId,
         },
       });
     });
@@ -201,14 +282,14 @@ export async function updateTimetableEntry(
 
 export async function deleteTimetableEntry(id: string): Promise<ActionResult> {
   try {
-    const { institutionId, role } = await getAuthContext();
+    const { institutionId, role, userId } = await getAuthContext();
 
-    if (!["SUPER_ADMIN", "ADMIN", "PRINCIPAL"].includes(role || "")) {
+    if (!["SUPER_ADMIN", "ADMIN", "PRINCIPAL"].includes(role)) {
       return { success: false, error: "Insufficient permissions" };
     }
 
     const existing = await db.timetable.findFirst({
-      where: { id, institutionId },
+      where: { id, class: { institutionId } },
     });
 
     if (!existing) {
@@ -223,8 +304,7 @@ export async function deleteTimetableEntry(id: string): Promise<ActionResult> {
           action: "DELETE",
           entity: "Timetable",
           entityId: id,
-          userId: (await getAuthContext()).userId,
-          institutionId,
+          userId,
         },
       });
     });
@@ -240,37 +320,15 @@ export async function deleteTimetableEntry(id: string): Promise<ActionResult> {
 export async function getTimetableForClass(classId: string) {
   const { institutionId } = await getAuthContext();
 
-  return db.timetable.findMany({
-    where: { classId, institutionId },
-    include: {
-      subject: { select: { id: true, name: true, code: true } },
-      teacher: { select: { id: true, firstName: true, lastName: true } },
-      class: { select: { id: true, name: true } },
-    },
-    orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+  const classroom = await db.class.findFirst({
+    where: { id: classId, institutionId },
+    select: { id: true },
   });
-}
 
-export async function getTimetableForTeacher(teacherId: string) {
-  const { institutionId } = await getAuthContext();
-
-  return db.timetable.findMany({
-    where: { teacherId, institutionId },
-    include: {
-      subject: { select: { id: true, name: true, code: true } },
-      class: { select: { id: true, name: true } },
-    },
-    orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-  });
-}
-
-export async function getWeeklyTimetable(classId?: string) {
-  const { institutionId } = await getAuthContext();
-
-  const where = classId ? { classId, institutionId } : { institutionId };
+  if (!classroom) return [];
 
   const entries = await db.timetable.findMany({
-    where,
+    where: { classId },
     include: {
       subject: { select: { id: true, name: true, code: true } },
       teacher: { select: { id: true, firstName: true, lastName: true } },
@@ -279,21 +337,103 @@ export async function getWeeklyTimetable(classId?: string) {
     orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
   });
 
-  const days = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-
-  const weeklySchedule = days.map((day, index) => ({
-    day: days[index],
-    dayIndex: index,
-    entries: entries.filter((e) => e.dayOfWeek === index),
+  return asPlainArray(entries).map((entry) => ({
+    id: entry.id,
+    dayOfWeek: entry.dayOfWeek,
+    startTime: entry.startTime,
+    endTime: entry.endTime,
+    roomNumber: null,
+    subject: {
+      id: entry.subject.id,
+      name: entry.subject.name,
+      code: entry.subject.code,
+    },
+    teacher: {
+      id: entry.teacher.id,
+      firstName: entry.teacher.firstName,
+      lastName: entry.teacher.lastName,
+    },
+    class: {
+      id: entry.class.id,
+      name: entry.class.name,
+      grade: entry.class.grade,
+      section: entry.class.section,
+    },
   }));
+}
 
-  return weeklySchedule;
+export async function getTimetableForTeacher(teacherId: string) {
+  const { institutionId } = await getAuthContext();
+
+  const teacher = await db.teacher.findFirst({
+    where: { id: teacherId, institutionId },
+    select: { id: true },
+  });
+
+  if (!teacher) return [];
+
+  const entries = await db.timetable.findMany({
+    where: { teacherId },
+    include: {
+      subject: { select: { id: true, name: true, code: true } },
+      class: { select: { id: true, name: true, grade: true, section: true } },
+      teacher: { select: { id: true, firstName: true, lastName: true } },
+    },
+    orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+  });
+
+  return asPlainArray(entries).map((entry) => ({
+    id: entry.id,
+    dayOfWeek: entry.dayOfWeek,
+    startTime: entry.startTime,
+    endTime: entry.endTime,
+    roomNumber: null,
+    subject: {
+      id: entry.subject.id,
+      name: entry.subject.name,
+      code: entry.subject.code,
+    },
+    teacher: {
+      id: entry.teacher.id,
+      firstName: entry.teacher.firstName,
+      lastName: entry.teacher.lastName,
+    },
+    class: {
+      id: entry.class.id,
+      name: entry.class.name,
+      grade: entry.class.grade,
+      section: entry.class.section,
+    },
+  }));
+}
+
+export async function getWeeklyTimetable(classId?: string) {
+  const { institutionId } = await getAuthContext();
+
+  const selectedClassId = classId && classId !== "all" ? classId : undefined;
+
+  if (selectedClassId) {
+    const classroom = await db.class.findFirst({
+      where: { id: selectedClassId, institutionId },
+      select: { id: true },
+    });
+
+    if (!classroom) {
+      return toWeeklySchedule([]);
+    }
+  }
+
+  const entries = await db.timetable.findMany({
+    where: selectedClassId
+      ? { classId: selectedClassId }
+      : { class: { institutionId } },
+    include: {
+      subject: { select: { id: true, name: true, code: true } },
+      teacher: { select: { id: true, firstName: true, lastName: true } },
+      class: { select: { id: true, name: true, grade: true, section: true } },
+    },
+    orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+  });
+
+  return toWeeklySchedule(asPlainArray(entries));
 }

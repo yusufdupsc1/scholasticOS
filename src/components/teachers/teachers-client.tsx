@@ -14,14 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createTeacher, updateTeacher, deleteTeacher, type TeacherFormData } from "@/server/actions/teachers";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 type Subject = { id: string; name: string; code: string };
 type Teacher = {
     id: string; teacherId: string; firstName: string; lastName: string;
     email: string; phone: string | null; specialization: string | null;
-    qualification: string | null; salary: unknown; status: string;
-    joiningDate: Date; subjects: { subject: { name: string; code: string } }[];
+    qualification: string | null; salary: number | null; status: string;
+    joiningDate: string | null; subjects: { subject: { id: string; name: string; code: string } }[];
     classTeacher: { name: string }[];
 };
 
@@ -39,7 +39,7 @@ const STATUS_COLORS: Record<string, string> = {
     TERMINATED: "bg-destructive/10 text-destructive",
 };
 
-function TeacherForm({ initial, subjects, onSuccess }: { initial?: Teacher; subjects: Subject[]; onSuccess: () => void }) {
+function TeacherForm({ initial, subjects: _subjects, onSuccess }: { initial?: Teacher; subjects: Subject[]; onSuccess: () => void }) {
     const [pending, startTransition] = useTransition();
     const [form, setForm] = useState<TeacherFormData>({
         firstName: initial?.firstName ?? "",
@@ -49,9 +49,9 @@ function TeacherForm({ initial, subjects, onSuccess }: { initial?: Teacher; subj
         gender: undefined, dateOfBirth: "", address: "",
         qualification: initial?.qualification ?? "",
         specialization: initial?.specialization ?? "",
-        salary: initial?.salary ? String(initial.salary) : "",
+        salary: initial?.salary != null ? String(initial.salary) : "",
         status: (initial?.status as TeacherFormData["status"]) ?? "ACTIVE",
-        subjectIds: initial?.subjects.map(s => s.subject.code) ?? [],
+        subjectIds: initial?.subjects.map(s => s.subject.id) ?? [],
     });
 
     const set = (k: keyof TeacherFormData, v: unknown) => setForm(f => ({ ...f, [k]: v }));

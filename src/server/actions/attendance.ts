@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  asPlainArray,
+  normalizeGroupCount,
+  toIsoDate,
+} from "@/lib/server/serializers";
 
 const AttendanceEntrySchema = z.object({
   studentId: z.string(),
@@ -181,11 +186,16 @@ export async function getAttendanceSummary({
     _count: true,
   });
 
-  const total = data.reduce((sum, d) => sum + d._count, 0);
-  const present = data.find((d) => d.status === "PRESENT")?._count ?? 0;
-  const absent = data.find((d) => d.status === "ABSENT")?._count ?? 0;
-  const late = data.find((d) => d.status === "LATE")?._count ?? 0;
-  const excused = data.find((d) => d.status === "EXCUSED")?._count ?? 0;
+  const breakdown = asPlainArray(data).map((item) => ({
+    status: item.status,
+    _count: normalizeGroupCount(item._count),
+  }));
+
+  const total = breakdown.reduce((sum, item) => sum + item._count, 0);
+  const present = breakdown.find((item) => item.status === "PRESENT")?._count ?? 0;
+  const absent = breakdown.find((item) => item.status === "ABSENT")?._count ?? 0;
+  const late = breakdown.find((item) => item.status === "LATE")?._count ?? 0;
+  const excused = breakdown.find((item) => item.status === "EXCUSED")?._count ?? 0;
 
   return {
     total,
@@ -194,7 +204,7 @@ export async function getAttendanceSummary({
     late,
     excused,
     presentRate: total > 0 ? Math.round((present / total) * 100) : 0,
-    breakdown: data,
+    breakdown,
   };
 }
 
@@ -221,5 +231,9 @@ export async function getAttendanceTrend({
     orderBy: { date: "asc" },
   });
 
-  return data;
+  return asPlainArray(data).map((item) => ({
+    date: toIsoDate(item.date),
+    status: item.status,
+    _count: normalizeGroupCount(item._count),
+  }));
 }

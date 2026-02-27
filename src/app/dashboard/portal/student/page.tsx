@@ -1,11 +1,11 @@
 // src/app/dashboard/portal/student/page.tsx
-import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { StatsSkeleton } from "@/components/ui/skeletons";
+import { safeLoader } from "@/lib/server/safe-loader";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Student Portal" };
@@ -108,7 +108,12 @@ export default async function StudentPortalPage() {
     redirect("/dashboard");
   }
 
-  const data = await getStudentData(user.institutionId, user.id);
+  const data = await safeLoader(
+    "DASHBOARD_STUDENT_PORTAL",
+    () => getStudentData(user.institutionId, user.id),
+    null,
+    { institutionId: user.institutionId, userId: user.id },
+  );
 
   if (!data) {
     return (
@@ -191,7 +196,7 @@ export default async function StudentPortalPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${totalUnpaid.toLocaleString()}
+              {formatCurrency(totalUnpaid)}
             </div>
             <p className="text-xs text-muted-foreground">
               {unpaidFees.length} unpaid fees
@@ -261,7 +266,7 @@ export default async function StudentPortalPage() {
                     <div>
                       <p className="font-medium text-sm">{fee.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        Due: {new Date(fee.dueDate).toLocaleDateString()}
+                        Due: {formatDate(fee.dueDate)}
                       </p>
                     </div>
                     <div className="text-right">
@@ -277,7 +282,7 @@ export default async function StudentPortalPage() {
                         {fee.status}
                       </Badge>
                       <p className="text-xs font-medium">
-                        ${Number(fee.amount).toLocaleString()}
+                        {formatCurrency(Number(fee.amount))}
                       </p>
                     </div>
                   </div>

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { StudentsTable } from "@/components/students/students-table";
 import { StudentsHeader } from "@/components/students/students-header";
 import { TableSkeleton } from "@/components/ui/skeletons";
+import { safeLoader } from "@/lib/server/safe-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -34,14 +35,23 @@ export default async function StudentsPage({ searchParams }: PageProps) {
   const classId = params.classId || "";
   const status = params.status || "ACTIVE";
 
-  const [data, classes] = await Promise.all([
-    getStudents({ page, search, classId, status }),
-    db.class.findMany({
-      where: { institutionId, isActive: true },
-      select: { id: true, name: true, grade: true, section: true },
-      orderBy: [{ grade: "asc" }, { section: "asc" }],
-    }),
-  ]);
+  const data = await safeLoader(
+    "DASHBOARD_STUDENTS_DATA",
+    () => getStudents({ page, search, classId, status }),
+    { students: [], total: 0, pages: 1, page },
+    { institutionId, page, classId, status },
+  );
+  const classes = await safeLoader(
+    "DASHBOARD_STUDENTS_CLASSES",
+    () =>
+      db.class.findMany({
+        where: { institutionId, isActive: true },
+        select: { id: true, name: true, grade: true, section: true },
+        orderBy: [{ grade: "asc" }, { section: "asc" }],
+      }),
+    [],
+    { institutionId },
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">

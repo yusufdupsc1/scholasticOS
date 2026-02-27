@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  asPlainArray,
+  normalizeGroupCount,
+  toNumber,
+} from "@/lib/server/serializers";
 
 const GradeSchema = z.object({
   studentId: z.string().min(1, "Student is required"),
@@ -237,21 +242,23 @@ export async function getGrades({
   term?: string;
 }) {
   const { institutionId } = await getAuthContext();
+  const studentFilter: Record<string, unknown> = {};
+  if (classId) {
+    studentFilter.classId = classId;
+  }
+  if (search) {
+    studentFilter.OR = [
+      { firstName: { contains: search, mode: "insensitive" } },
+      { lastName: { contains: search, mode: "insensitive" } },
+      { studentId: { contains: search, mode: "insensitive" } },
+    ];
+  }
 
   const where: Record<string, unknown> = {
     institutionId,
     ...(subjectId && { subjectId }),
     ...(term && { term }),
-    ...(classId && { student: { classId } }),
-    ...(search && {
-      student: {
-        OR: [
-          { firstName: { contains: search, mode: "insensitive" } },
-          { lastName: { contains: search, mode: "insensitive" } },
-          { studentId: { contains: search, mode: "insensitive" } },
-        ],
-      },
-    }),
+    ...(Object.keys(studentFilter).length > 0 && { student: studentFilter }),
   };
 
   const [grades, total] = await Promise.all([
@@ -275,7 +282,27 @@ export async function getGrades({
     db.grade.count({ where }),
   ]);
 
-  return { grades, total, pages: Math.ceil(total / limit), page };
+  return {
+    grades: asPlainArray(grades).map((grade) => ({
+      id: grade.id,
+      score: toNumber(grade.score),
+      maxScore: toNumber(grade.maxScore),
+      percentage: toNumber(grade.percentage),
+      letterGrade: grade.letterGrade,
+      term: grade.term,
+      remarks: grade.remarks,
+      student: {
+        firstName: grade.student.firstName,
+        lastName: grade.student.lastName,
+        studentId: grade.student.studentId,
+        class: grade.student.class ? { name: grade.student.class.name } : null,
+      },
+      subject: { name: grade.subject.name, code: grade.subject.code },
+    })),
+    total,
+    pages: Math.max(1, Math.ceil(total / limit)),
+    page,
+  };
 }
 
 export async function getGradeDistribution() {
@@ -288,5 +315,8 @@ export async function getGradeDistribution() {
     orderBy: { letterGrade: "asc" },
   });
 
-  return grades;
+  return asPlainArray(grades).map((grade) => ({
+    letterGrade: grade.letterGrade,
+    _count: normalizeGroupCount(grade._count),
+  }));
 }

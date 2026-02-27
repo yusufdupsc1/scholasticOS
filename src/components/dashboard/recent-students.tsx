@@ -6,7 +6,7 @@ interface StudentItem {
   firstName: string;
   lastName: string;
   studentId: string;
-  createdAt: Date;
+  createdAt: string | null;
   class: { name: string } | null;
 }
 
@@ -33,7 +33,9 @@ export function RecentStudents({ students }: { students: StudentItem[] }) {
                   <p className="text-xs text-muted-foreground mt-0.5">{student.studentId} {student.class?.name ? `• ${student.class.name}` : ""}</p>
                 </div>
               </div>
-              <p className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">{formatDate(student.createdAt)}</p>
+              <p className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                {student.createdAt ? formatDate(student.createdAt) : "—"}
+              </p>
             </div>
           ))
         ) : (

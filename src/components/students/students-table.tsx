@@ -8,7 +8,7 @@ type Student = {
   lastName: string;
   email: string | null;
   status: string;
-  createdAt: Date;
+  createdAt: string | null;
   class: { name: string; grade: string; section: string } | null;
 };
 
@@ -54,7 +54,9 @@ export function StudentsTable({ students, total, pages, currentPage }: Props) {
                   <td className="py-2">{student.class?.name ?? "-"}</td>
                   <td className="py-2">{student.email ?? "-"}</td>
                   <td className="py-2">{student.status}</td>
-                  <td className="py-2">{formatDate(student.createdAt)}</td>
+                  <td className="py-2">
+                    {student.createdAt ? formatDate(student.createdAt) : "-"}
+                  </td>
                 </tr>
               ))
             ) : (

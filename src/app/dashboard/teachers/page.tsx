@@ -5,6 +5,7 @@ import { getTeachers } from "@/server/actions/teachers";
 import { getSubjects } from "@/server/actions/classes";
 import { TeachersClient } from "@/components/teachers/teachers-client";
 import { TableSkeleton } from "@/components/ui/skeletons";
+import { safeLoader } from "@/lib/server/safe-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Teachers" };
@@ -24,10 +25,18 @@ export default async function TeachersPage({ searchParams }: PageProps) {
   const search = params.search || "";
   const status = params.status || "ACTIVE";
 
-  const [data, subjects] = await Promise.all([
-    getTeachers({ page, search, status }),
-    getSubjects(),
-  ]);
+  const data = await safeLoader(
+    "DASHBOARD_TEACHERS_DATA",
+    () => getTeachers({ page, search, status }),
+    { teachers: [], total: 0, pages: 1, page },
+    { institutionId, page, status },
+  );
+  const subjects = await safeLoader(
+    "DASHBOARD_TEACHERS_SUBJECTS",
+    () => getSubjects(),
+    [],
+    { institutionId },
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">

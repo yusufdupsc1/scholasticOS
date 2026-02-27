@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getEvents } from "@/server/actions/events";
 import { EventsClient } from "@/components/events/events-client";
 import { TableSkeleton } from "@/components/ui/skeletons";
+import { safeLoader } from "@/lib/server/safe-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Events" };
@@ -23,7 +24,12 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const search = params.search || "";
   const type = params.type || "";
 
-  const data = await getEvents({ page, search, type });
+  const data = await safeLoader(
+    "DASHBOARD_EVENTS_DATA",
+    () => getEvents({ page, search, type }),
+    { events: [], total: 0, pages: 1, page },
+    { institutionId, page, type },
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">

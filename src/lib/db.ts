@@ -17,6 +17,27 @@ function getDbHostFromUrl(url?: string): string {
   }
 }
 
+function normalizeDatasourceUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+
+  try {
+    const parsed = new URL(url);
+
+    // Reduce connection pressure in serverless/session pool mode.
+    // Keep existing user-provided values if already configured.
+    if (!parsed.searchParams.has("connection_limit")) {
+      parsed.searchParams.set("connection_limit", "1");
+    }
+    if (!parsed.searchParams.has("pool_timeout")) {
+      parsed.searchParams.set("pool_timeout", "20");
+    }
+
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 function createMockModel() {
   return new Proxy(
     {},
@@ -69,7 +90,7 @@ const globalForPrisma = globalThis as { prisma?: unknown };
 
 function createDbClient() {
   try {
-    const datasourceUrl = process.env.DATABASE_URL;
+    const datasourceUrl = normalizeDatasourceUrl(process.env.DATABASE_URL);
     const client = new PrismaClient({
       datasourceUrl,
       log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
@@ -84,6 +105,6 @@ function createDbClient() {
 
 export const db: any = globalForPrisma.prisma ?? createDbClient();
 
-if (process.env.NODE_ENV !== "production") {
+if (!globalForPrisma.prisma) {
   globalForPrisma.prisma = db;
 }

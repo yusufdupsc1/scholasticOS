@@ -151,6 +151,7 @@ export function Sidebar({ session }: SidebarProps) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={false}
                       className={cn(
                         "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-all duration-150",
                         isActive(item.href)

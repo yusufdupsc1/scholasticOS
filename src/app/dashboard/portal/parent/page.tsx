@@ -1,11 +1,12 @@
 // src/app/dashboard/portal/parent/page.tsx
-import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { safeLoader } from "@/lib/server/safe-loader";
+import { formatCurrency } from "@/lib/utils";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Parent Portal" };
@@ -66,7 +67,12 @@ export default async function ParentPortalPage() {
     redirect("/dashboard");
   }
 
-  const data = await getParentData(user.institutionId, user.id);
+  const data = await safeLoader(
+    "DASHBOARD_PARENT_PORTAL",
+    () => getParentData(user.institutionId, user.id),
+    null,
+    { institutionId: user.institutionId, userId: user.id },
+  );
 
   if (!data) {
     return (
@@ -124,7 +130,7 @@ export default async function ParentPortalPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${totalUnpaid.toLocaleString()}
+              {formatCurrency(totalUnpaid)}
             </div>
           </CardContent>
         </Card>
@@ -244,7 +250,7 @@ export default async function ParentPortalPage() {
                           >
                             <span>{fee.title}</span>
                             <span className="font-medium">
-                              ${Number(fee.amount).toLocaleString()}
+                              {formatCurrency(Number(fee.amount))}
                             </span>
                           </div>
                         ))}

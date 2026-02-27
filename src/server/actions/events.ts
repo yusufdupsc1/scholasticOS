@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { asPlainArray, toIsoDate } from "@/lib/server/serializers";
 
 const EventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -18,6 +19,14 @@ const EventSchema = z.object({
 });
 
 export type EventFormData = z.infer<typeof EventSchema>;
+const VALID_EVENT_TYPES = [
+  "ACADEMIC",
+  "SPORTS",
+  "CULTURAL",
+  "HOLIDAY",
+  "EXAM",
+  "GENERAL",
+] as const;
 
 type ActionResult<T = void> =
   | { success: true; data?: T; error?: never }
@@ -198,10 +207,15 @@ export async function getEvents({
   upcoming?: boolean;
 }) {
   const { institutionId } = await getAuthContext();
+  const normalizedType = VALID_EVENT_TYPES.includes(
+    type as (typeof VALID_EVENT_TYPES)[number],
+  )
+    ? type
+    : "";
 
   const where: Record<string, unknown> = {
     institutionId,
-    ...(type && { type }),
+    ...(normalizedType && { type: normalizedType }),
     ...(upcoming && { startDate: { gte: new Date() } }),
     ...(search && {
       OR: [
@@ -222,5 +236,18 @@ export async function getEvents({
     db.event.count({ where }),
   ]);
 
-  return { events, total, pages: Math.ceil(total / limit), page };
+  return {
+    events: asPlainArray(events).map((event) => ({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      startDate: toIsoDate(event.startDate),
+      endDate: toIsoDate(event.endDate),
+      location: event.location,
+      type: event.type,
+    })),
+    total,
+    pages: Math.max(1, Math.ceil(total / limit)),
+    page,
+  };
 }

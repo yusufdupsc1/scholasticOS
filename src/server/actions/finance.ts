@@ -6,6 +6,11 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateReceiptNumber } from "@/lib/utils";
+import {
+  asPlainArray,
+  toIsoDate,
+  toNumber,
+} from "@/lib/server/serializers";
 
 const FeeSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -43,6 +48,13 @@ const PaymentSchema = z.object({
 
 export type FeeFormData = z.infer<typeof FeeSchema>;
 export type PaymentFormData = z.infer<typeof PaymentSchema>;
+const VALID_FEE_STATUSES = [
+  "UNPAID",
+  "PARTIAL",
+  "PAID",
+  "OVERDUE",
+  "WAIVED",
+] as const;
 
 type ActionResult<T = void> =
   | { success: true; data?: T; error?: never }
@@ -250,10 +262,15 @@ export async function getFees({
   term?: string;
 }) {
   const { institutionId } = await getAuthContext();
+  const normalizedStatus = VALID_FEE_STATUSES.includes(
+    status as (typeof VALID_FEE_STATUSES)[number],
+  )
+    ? status
+    : "";
 
   const where: Record<string, unknown> = {
     institutionId,
-    ...(status && { status }),
+    ...(normalizedStatus && { status: normalizedStatus }),
     ...(term && { term }),
     ...(search && {
       OR: [
@@ -288,7 +305,31 @@ export async function getFees({
     db.fee.count({ where }),
   ]);
 
-  return { fees, total, pages: Math.ceil(total / limit), page };
+  return {
+    fees: asPlainArray(fees).map((fee) => ({
+      id: fee.id,
+      title: fee.title,
+      amount: toNumber(fee.amount),
+      dueDate: toIsoDate(fee.dueDate),
+      status: fee.status,
+      feeType: fee.feeType,
+      term: fee.term,
+      student: {
+        firstName: fee.student.firstName,
+        lastName: fee.student.lastName,
+        studentId: fee.student.studentId,
+      },
+      payments: asPlainArray(fee.payments).map((payment) => ({
+        amount: toNumber(payment.amount),
+        paidAt: toIsoDate(payment.paidAt),
+        method: payment.method,
+        receiptNumber: payment.receiptNumber,
+      })),
+    })),
+    total,
+    pages: Math.max(1, Math.ceil(total / limit)),
+    page,
+  };
 }
 
 export async function getFinanceSummary() {
@@ -343,6 +384,9 @@ export async function getFinanceSummary() {
       count: pendingFees._count,
     },
     overdueCount,
-    monthlyRevenue,
+    monthlyRevenue: asPlainArray(monthlyRevenue).map((row) => ({
+      paidAt: toIsoDate(row.paidAt),
+      amount: toNumber(row._sum.amount),
+    })),
   };
 }

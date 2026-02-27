@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { asPlainArray, toIsoDate } from "@/lib/server/serializers";
 
 // ─── Schemas ───────────────────────────────
 const StudentSchema = z.object({
@@ -27,6 +28,14 @@ const StudentSchema = z.object({
 });
 
 export type StudentFormData = z.infer<typeof StudentSchema>;
+const VALID_STUDENT_STATUSES = [
+  "ACTIVE",
+  "INACTIVE",
+  "GRADUATED",
+  "SUSPENDED",
+  "EXPELLED",
+  "TRANSFERRED",
+] as const;
 
 type ActionResult<T = void> =
   | { success: true; data?: T; error?: never }
@@ -273,14 +282,17 @@ export async function getStudents({
   status?: string;
 }) {
   const { institutionId } = await getAuthContext();
-  const where: {
-    institutionId: string;
-    status?: any;
-    classId?: string;
-    OR?: Array<Record<string, unknown>>;
-  } = {
+  const normalizedStatus =
+    status === "ALL" ||
+    VALID_STUDENT_STATUSES.includes(
+      status as (typeof VALID_STUDENT_STATUSES)[number],
+    )
+      ? status
+      : "ACTIVE";
+
+  const where: Record<string, unknown> = {
     institutionId,
-    ...(status !== "ALL" && { status: status as any }),
+    ...(normalizedStatus !== "ALL" && { status: normalizedStatus }),
     ...(classId && { classId }),
     ...(search && {
       OR: [
@@ -307,9 +319,24 @@ export async function getStudents({
   ]);
 
   return {
-    students,
+    students: asPlainArray(students).map((student) => ({
+      id: student.id,
+      studentId: student.studentId,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      status: student.status,
+      createdAt: toIsoDate(student.createdAt),
+      class: student.class
+        ? {
+            name: student.class.name,
+            grade: student.class.grade,
+            section: student.class.section,
+          }
+        : null,
+    })),
     total,
-    pages: Math.ceil(total / limit),
+    pages: Math.max(1, Math.ceil(total / limit)),
     page,
   };
 }
@@ -364,6 +391,13 @@ export async function getDashboardStats() {
       amount: Number(pendingFees._sum.amount ?? 0),
       count: pendingFees._count,
     },
-    recentStudents,
+    recentStudents: asPlainArray(recentStudents).map((student) => ({
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      studentId: student.studentId,
+      createdAt: toIsoDate(student.createdAt),
+      class: student.class ? { name: student.class.name } : null,
+    })),
   };
 }

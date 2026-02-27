@@ -18,7 +18,7 @@ import { formatDate } from "@/lib/utils";
 
 type Event = {
     id: string; title: string; description: string | null;
-    startDate: Date; endDate: Date | null; location: string | null; type: string;
+    startDate: string | null; endDate: string | null; location: string | null; type: string;
 };
 
 interface Props {
@@ -156,7 +156,7 @@ export function EventsClient({ events, total, pages, currentPage }: Props) {
                         <div className="space-y-1">
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Calendar className="h-3 w-3 flex-shrink-0" />
-                                {formatDate(e.startDate)}
+                                {e.startDate ? formatDate(e.startDate) : "—"}
                                 {e.endDate && ` → ${formatDate(e.endDate)}`}
                             </div>
                             {e.location && (

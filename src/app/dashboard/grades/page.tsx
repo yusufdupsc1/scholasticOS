@@ -5,6 +5,7 @@ import { getGrades, getGradeDistribution } from "@/server/actions/grades";
 import { getSubjects } from "@/server/actions/classes";
 import { GradesClient } from "@/components/grades/grades-client";
 import { TableSkeleton } from "@/components/ui/skeletons";
+import { safeLoader } from "@/lib/server/safe-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Grades" };
@@ -25,11 +26,24 @@ export default async function GradesPage({ searchParams }: PageProps) {
   const subjectId = params.subjectId || "";
   const term = params.term || "";
 
-  const [data, subjects, distribution] = await Promise.all([
-    getGrades({ page, search, subjectId, term }),
-    getSubjects(),
-    getGradeDistribution(),
-  ]);
+  const data = await safeLoader(
+    "DASHBOARD_GRADES_DATA",
+    () => getGrades({ page, search, subjectId, term }),
+    { grades: [], total: 0, pages: 1, page },
+    { institutionId, page, subjectId, term },
+  );
+  const subjects = await safeLoader(
+    "DASHBOARD_GRADES_SUBJECTS",
+    () => getSubjects(),
+    [],
+    { institutionId },
+  );
+  const distribution = await safeLoader(
+    "DASHBOARD_GRADES_DISTRIBUTION",
+    () => getGradeDistribution(),
+    [],
+    { institutionId },
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">

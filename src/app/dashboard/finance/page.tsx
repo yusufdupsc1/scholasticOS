@@ -5,6 +5,7 @@ import { getFees, getFinanceSummary } from "@/server/actions/finance";
 import { db } from "@/lib/db";
 import { FinanceClient } from "@/components/finance/finance-client";
 import { TableSkeleton } from "@/components/ui/skeletons";
+import { safeLoader } from "@/lib/server/safe-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Finance" };
@@ -26,16 +27,42 @@ export default async function FinancePage({ searchParams }: PageProps) {
   const status = params.status || "";
   const term = params.term || "";
 
-  const [data, summary, students] = await Promise.all([
-    getFees({ page, search, status, term }),
-    getFinanceSummary(),
-    db.student.findMany({
-      where: { institutionId, status: "ACTIVE" },
-      select: { id: true, firstName: true, lastName: true, studentId: true, classId: true },
-      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-      take: 500,
-    }),
-  ]);
+  const data = await safeLoader(
+    "DASHBOARD_FINANCE_FEES",
+    () => getFees({ page, search, status, term }),
+    { fees: [], total: 0, pages: 1, page },
+    { institutionId, page, status, term },
+  );
+  const summary = await safeLoader(
+    "DASHBOARD_FINANCE_SUMMARY",
+    () => getFinanceSummary(),
+    {
+      totalFees: { amount: 0, count: 0 },
+      paidFees: { amount: 0, count: 0 },
+      pendingFees: { amount: 0, count: 0 },
+      overdueCount: 0,
+      monthlyRevenue: [],
+    },
+    { institutionId },
+  );
+  const students = await safeLoader(
+    "DASHBOARD_FINANCE_STUDENTS",
+    () =>
+      db.student.findMany({
+        where: { institutionId, status: "ACTIVE" },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          studentId: true,
+          classId: true,
+        },
+        orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+        take: 500,
+      }),
+    [],
+    { institutionId },
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">

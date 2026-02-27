@@ -24,6 +24,7 @@ export function MobileNav({ session: _session }: { session: Session }) {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={false}
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 text-[11px]",
               active ? "text-black" : "text-muted-foreground"

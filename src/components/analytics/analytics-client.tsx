@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { formatCurrency } from "@/lib/utils";
 
 type AttendanceSummary = { total: number; present: number; absent: number; late: number; excused: number; presentRate: number };
-type TrendPoint = { date: Date; status: string; _count: number };
+type TrendPoint = { date: string | null; status: string; _count: number };
 type GradeDist = { letterGrade: string | null; _count: number }[];
 type FinanceSummary = {
     totalFees: { amount: number; count: number };
@@ -43,6 +43,7 @@ export function AnalyticsClient({
     // Transform attendance trend into date-grouped chart data
     const trendByDate: Record<string, Record<string, number>> = {};
     attendanceTrend.forEach(({ date, status, _count }) => {
+        if (!date) return;
         const d = format(new Date(date), "MMM d");
         if (!trendByDate[d]) trendByDate[d] = {};
         trendByDate[d][status] = _count;
@@ -131,7 +132,7 @@ export function AnalyticsClient({
                         <BarChart data={financeData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                             <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                            <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                            <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                             <Tooltip formatter={(v: number) => [formatCurrency(v), "Amount"]} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
                             <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                                 {financeData.map((_, i) => <Cell key={i} fill={i === 0 ? "#6366f1" : i === 1 ? "#22c55e" : "#f59e0b"} />)}

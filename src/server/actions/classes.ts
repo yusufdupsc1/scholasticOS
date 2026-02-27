@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { asPlainArray, toNumber } from "@/lib/server/serializers";
 
 const ClassSchema = z.object({
   name: z.string().min(1, "Class name is required"),
@@ -248,7 +249,27 @@ export async function getClasses({
     db.class.count({ where }),
   ]);
 
-  return { classes, total, pages: Math.ceil(total / limit), page };
+  return {
+    classes: asPlainArray(classes).map((classItem) => ({
+      id: classItem.id,
+      name: classItem.name,
+      grade: classItem.grade,
+      section: classItem.section,
+      capacity: classItem.capacity,
+      roomNumber: classItem.roomNumber,
+      academicYear: classItem.academicYear,
+      classTeacher: classItem.classTeacher
+        ? {
+            firstName: classItem.classTeacher.firstName,
+            lastName: classItem.classTeacher.lastName,
+          }
+        : null,
+      _count: { students: toNumber(classItem._count.students) },
+    })),
+    total,
+    pages: Math.max(1, Math.ceil(total / limit)),
+    page,
+  };
 }
 
 // ─── Subjects ─────────────────────────────────
@@ -377,7 +398,7 @@ export async function updateSubject(
 export async function getSubjects(search = "") {
   const { institutionId } = await getAuthContext();
 
-  return db.subject.findMany({
+  const subjects = await db.subject.findMany({
     where: {
       institutionId,
       isActive: true,
@@ -393,4 +414,16 @@ export async function getSubjects(search = "") {
     },
     orderBy: { name: "asc" },
   });
+
+  return asPlainArray(subjects).map((subject) => ({
+    id: subject.id,
+    name: subject.name,
+    code: subject.code,
+    credits: subject.credits,
+    isCore: subject.isCore,
+    _count: {
+      teachers: toNumber(subject._count.teachers),
+      grades: toNumber(subject._count.grades),
+    },
+  }));
 }

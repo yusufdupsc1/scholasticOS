@@ -16,9 +16,11 @@ import { createFee, recordPayment, type FeeFormData, type PaymentFormData } from
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 type Student = { id: string; firstName: string; lastName: string; studentId: string; classId: string | null };
-type Payment = { amount: unknown; paidAt: Date; method: string; receiptNumber: string | null };
+type Payment = {
+    amount: number; paidAt: string | null; method: string; receiptNumber: string | null
+};
 type Fee = {
-    id: string; title: string; amount: unknown; dueDate: Date; status: string;
+    id: string; title: string; amount: number; dueDate: string | null; status: string;
     feeType: string; term: string;
     student: { firstName: string; lastName: string; studentId: string };
     payments: Payment[];
@@ -116,8 +118,8 @@ function FeeForm({ students, onSuccess }: { students: Student[]; onSuccess: () =
 
 function PaymentForm({ fee, onSuccess }: { fee: Fee; onSuccess: () => void }) {
     const [pending, startTransition] = useTransition();
-    const totalPaid = fee.payments.reduce((s, p) => s + Number(p.amount), 0);
-    const remaining = Number(fee.amount) - totalPaid;
+    const totalPaid = fee.payments.reduce((s, p) => s + p.amount, 0);
+    const remaining = fee.amount - totalPaid;
     const [form, setForm] = useState<PaymentFormData>({ feeId: fee.id, amount: remaining, method: "CASH" });
     const set = (k: keyof PaymentFormData, v: unknown) => setForm(f => ({ ...f, [k]: v }));
 
@@ -133,7 +135,7 @@ function PaymentForm({ fee, onSuccess }: { fee: Fee; onSuccess: () => void }) {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
-                <div className="flex justify-between"><span className="text-muted-foreground">Total Amount:</span><span className="font-medium">{formatCurrency(Number(fee.amount))}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Amount:</span><span className="font-medium">{formatCurrency(fee.amount)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Paid:</span><span className="font-medium text-green-600">{formatCurrency(totalPaid)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Remaining:</span><span className="font-bold">{formatCurrency(remaining)}</span></div>
             </div>
@@ -224,7 +226,7 @@ export function FinanceClient({ fees, students, summary, total, pages, currentPa
                             {fees.length === 0 ? (
                                 <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">No fees found.</td></tr>
                             ) : fees.map(f => {
-                                const paid = f.payments.reduce((s, p) => s + Number(p.amount), 0);
+                                const paid = f.payments.reduce((s, p) => s + p.amount, 0);
                                 return (
                                     <tr key={f.id} className="hover:bg-muted/30 transition-colors">
                                         <td className="px-4 py-3">
@@ -235,9 +237,9 @@ export function FinanceClient({ fees, students, summary, total, pages, currentPa
                                             <p>{f.title}</p>
                                             <p className="text-xs text-muted-foreground">{f.term}</p>
                                         </td>
-                                        <td className="px-4 py-3 font-medium">{formatCurrency(Number(f.amount))}</td>
+                                        <td className="px-4 py-3 font-medium">{formatCurrency(f.amount)}</td>
                                         <td className="px-4 py-3 text-green-600">{formatCurrency(paid)}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{formatDate(f.dueDate)}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{f.dueDate ? formatDate(f.dueDate) : "—"}</td>
                                         <td className="px-4 py-3">
                                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[f.status] ?? ""}`}>{f.status}</span>
                                         </td>

@@ -11,6 +11,7 @@ import { RecentStudents } from "@/components/dashboard/recent-students";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { UpcomingEvents } from "@/components/dashboard/upcoming-events";
 import { DEFAULT_LOCALE, DEFAULT_TIMEZONE } from "@/lib/utils";
+import { safeLoader } from "@/lib/server/safe-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -115,16 +116,30 @@ export default async function DashboardPage() {
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  const [statsResult, attendanceData, revenueData, events] =
-    await Promise.all([
-      getDashboardStats().catch((error) => {
-        console.error("[DASHBOARD_STATS]", error);
-        return null;
-      }),
-      getAttendanceData(institutionId),
-      getRevenueData(institutionId),
-      getUpcomingEvents(institutionId),
-    ]);
+  const statsResult = await safeLoader(
+    "DASHBOARD_STATS",
+    () => getDashboardStats(),
+    null,
+    { institutionId },
+  );
+  const attendanceData = await safeLoader(
+    "DASHBOARD_ATTENDANCE",
+    () => getAttendanceData(institutionId),
+    [],
+    { institutionId },
+  );
+  const revenueData = await safeLoader(
+    "DASHBOARD_REVENUE",
+    () => getRevenueData(institutionId),
+    [],
+    { institutionId },
+  );
+  const events = await safeLoader(
+    "DASHBOARD_EVENTS",
+    () => getUpcomingEvents(institutionId),
+    [],
+    { institutionId },
+  );
 
   const stats = statsResult ?? {
     totalStudents: 0,

@@ -1,4 +1,3 @@
-// src/components/timetable/timetable-client.tsx
 "use client";
 
 import { useState, useTransition } from "react";
@@ -39,14 +38,16 @@ type TimetableEntry = {
   startTime: string;
   endTime: string;
   roomNumber: string | null;
-  subject: { name: string; code: string };
-  teacher: { firstName: string; lastName: string } | null;
-  class: { name: string };
+  subject: { id: string; name: string; code: string };
+  teacher: { id: string; firstName: string; lastName: string };
+  class: { id: string; name: string; grade: string; section: string };
 };
 type DaySchedule = { day: string; dayIndex: number; entries: TimetableEntry[] };
 
 interface Props {
   classes: Class[];
+  subjects: Subject[];
+  teachers: Teacher[];
   timetable: DaySchedule[];
   selectedClassId: string;
 }
@@ -64,19 +65,21 @@ const DAYS = [
 function TimetableForm({
   initial,
   classes,
+  subjects,
+  teachers,
   onSuccess,
 }: {
   initial?: TimetableEntry;
   classes: Class[];
+  subjects: Subject[];
+  teachers: Teacher[];
   onSuccess: () => void;
 }) {
   const [pending, startTransition] = useTransition();
   const [form, setForm] = useState<TimetableFormData>({
-    classId: initial?.class.name
-      ? classes.find((c) => c.name === initial.class.name)?.id || ""
-      : "",
-    subjectId: "",
-    teacherId: "",
+    classId: initial?.class.id ?? "",
+    subjectId: initial?.subject.id ?? "",
+    teacherId: initial?.teacher.id ?? "",
     dayOfWeek: initial?.dayOfWeek ?? 1,
     startTime: initial?.startTime ?? "08:00",
     endTime: initial?.endTime ?? "09:00",
@@ -124,6 +127,46 @@ function TimetableForm({
       </div>
 
       <div className="space-y-1.5">
+        <Label>Subject *</Label>
+        <Select
+          value={form.subjectId}
+          onValueChange={(v) => set("subjectId", v)}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select subject" />
+          </SelectTrigger>
+          <SelectContent>
+            {subjects.map((subject) => (
+              <SelectItem key={subject.id} value={subject.id}>
+                {subject.name} ({subject.code})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Teacher *</Label>
+        <Select
+          value={form.teacherId}
+          onValueChange={(v) => set("teacherId", v)}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select teacher" />
+          </SelectTrigger>
+          <SelectContent>
+            {teachers.map((teacher) => (
+              <SelectItem key={teacher.id} value={teacher.id}>
+                {teacher.firstName} {teacher.lastName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
         <Label>Day *</Label>
         <Select
           value={String(form.dayOfWeek)}
@@ -164,7 +207,7 @@ function TimetableForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label>Room</Label>
+        <Label>Room (optional)</Label>
         <Input
           value={form.roomNumber ?? ""}
           onChange={(e) => set("roomNumber", e.target.value)}
@@ -181,6 +224,8 @@ function TimetableForm({
 
 export function TimetableClient({
   classes,
+  subjects,
+  teachers,
   timetable,
   selectedClassId,
 }: Props) {
@@ -192,8 +237,11 @@ export function TimetableClient({
 
   const handleClassChange = (classId: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (classId) params.set("classId", classId);
-    else params.delete("classId");
+    if (classId === "all") {
+      params.delete("classId");
+    } else {
+      params.set("classId", classId);
+    }
     router.push(`?${params.toString()}`);
   };
 
@@ -224,6 +272,8 @@ export function TimetableClient({
             <TimetableForm
               initial={editEntry ?? undefined}
               classes={classes}
+              subjects={subjects}
+              teachers={teachers}
               onSuccess={() => setOpen(false)}
             />
           </DialogContent>
@@ -281,15 +331,11 @@ export function TimetableClient({
                       </span>
                     </div>
                     <p className="font-semibold">{entry.subject.name}</p>
-                    {entry.teacher && (
-                      <p className="text-muted-foreground">
-                        {entry.teacher.firstName} {entry.teacher.lastName}
-                      </p>
-                    )}
+                    <p className="text-muted-foreground">
+                      {entry.teacher.firstName} {entry.teacher.lastName}
+                    </p>
                     {entry.roomNumber && (
-                      <p className="text-muted-foreground">
-                        {entry.roomNumber}
-                      </p>
+                      <p className="text-muted-foreground">{entry.roomNumber}</p>
                     )}
                     <div className="flex gap-1 mt-2">
                       <Button

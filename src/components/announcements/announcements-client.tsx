@@ -18,7 +18,7 @@ import { formatDate } from "@/lib/utils";
 
 type Announcement = {
     id: string; title: string; content: string; priority: string;
-    targetAudience: string[]; publishedAt: Date; expiresAt: Date | null;
+    targetAudience: string[]; publishedAt: string | null; expiresAt: string | null;
 };
 
 interface Props {
@@ -164,7 +164,7 @@ export function AnnouncementsClient({ announcements, total, pages, currentPage }
                                     </div>
                                     <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{a.content}</p>
                                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                        <span>Published {formatDate(a.publishedAt)}</span>
+                                        <span>Published {a.publishedAt ? formatDate(a.publishedAt) : "—"}</span>
                                         {a.expiresAt && <span>Expires {formatDate(a.expiresAt)}</span>}
                                         <div className="flex gap-1">
                                             {a.targetAudience.map(t => (

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getAttendanceSummary } from "@/server/actions/attendance";
 import { AttendanceClient } from "@/components/attendance/attendance-client";
 import { TableSkeleton } from "@/components/ui/skeletons";
+import { safeLoader } from "@/lib/server/safe-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Attendance" };
@@ -27,18 +28,36 @@ export default async function AttendancePage({ searchParams }: PageProps) {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 30);
 
-  const [classes, summary] = await Promise.all([
-    db.class.findMany({
-      where: { institutionId, isActive: true },
-      select: { id: true, name: true, grade: true, section: true },
-      orderBy: [{ grade: "asc" }, { section: "asc" }],
-    }),
-    getAttendanceSummary({
-      classId: classId || undefined,
-      startDate: startDate.toISOString().slice(0, 10),
-      endDate: today,
-    }),
-  ]);
+  const classes = await safeLoader(
+    "DASHBOARD_ATTENDANCE_CLASSES",
+    () =>
+      db.class.findMany({
+        where: { institutionId, isActive: true },
+        select: { id: true, name: true, grade: true, section: true },
+        orderBy: [{ grade: "asc" }, { section: "asc" }],
+      }),
+    [],
+    { institutionId },
+  );
+  const summary = await safeLoader(
+    "DASHBOARD_ATTENDANCE_SUMMARY",
+    () =>
+      getAttendanceSummary({
+        classId: classId || undefined,
+        startDate: startDate.toISOString().slice(0, 10),
+        endDate: today,
+      }),
+    {
+      total: 0,
+      present: 0,
+      absent: 0,
+      late: 0,
+      excused: 0,
+      presentRate: 0,
+      breakdown: [],
+    },
+    { institutionId, classId },
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">

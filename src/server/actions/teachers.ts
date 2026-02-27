@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  asPlainArray,
+  toIsoDate,
+  toNullableNumber,
+} from "@/lib/server/serializers";
 
 const TeacherSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50),
@@ -25,6 +30,13 @@ const TeacherSchema = z.object({
 });
 
 export type TeacherFormData = z.infer<typeof TeacherSchema>;
+const VALID_TEACHER_STATUSES = [
+  "ACTIVE",
+  "INACTIVE",
+  "ON_LEAVE",
+  "RESIGNED",
+  "TERMINATED",
+] as const;
 
 type ActionResult<T = void> =
   | { success: true; data?: T; error?: never }
@@ -281,10 +293,17 @@ export async function getTeachers({
   status?: string;
 }) {
   const { institutionId } = await getAuthContext();
+  const normalizedStatus =
+    status === "ALL" ||
+    VALID_TEACHER_STATUSES.includes(
+      status as (typeof VALID_TEACHER_STATUSES)[number],
+    )
+      ? status
+      : "ACTIVE";
 
   const where: Record<string, unknown> = {
     institutionId,
-    ...(status !== "ALL" && { status }),
+    ...(normalizedStatus !== "ALL" && { status: normalizedStatus }),
     ...(search && {
       OR: [
         { firstName: { contains: search, mode: "insensitive" } },
@@ -299,9 +318,20 @@ export async function getTeachers({
   const [teachers, total] = await Promise.all([
     db.teacher.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        teacherId: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        specialization: true,
+        qualification: true,
+        salary: true,
+        status: true,
+        joiningDate: true,
         subjects: {
-          include: { subject: { select: { name: true, code: true } } },
+          select: { subject: { select: { id: true, name: true, code: true } } },
         },
         classTeacher: { select: { name: true } },
       },
@@ -312,5 +342,32 @@ export async function getTeachers({
     db.teacher.count({ where }),
   ]);
 
-  return { teachers, total, pages: Math.ceil(total / limit), page };
+  return {
+    teachers: asPlainArray(teachers).map((teacher) => ({
+      id: teacher.id,
+      teacherId: teacher.teacherId,
+      firstName: teacher.firstName,
+      lastName: teacher.lastName,
+      email: teacher.email,
+      phone: teacher.phone,
+      specialization: teacher.specialization,
+      qualification: teacher.qualification,
+      salary: toNullableNumber(teacher.salary),
+      status: teacher.status,
+      joiningDate: toIsoDate(teacher.joiningDate),
+      subjects: asPlainArray(teacher.subjects).map((item) => ({
+        subject: {
+          id: item.subject.id,
+          name: item.subject.name,
+          code: item.subject.code,
+        },
+      })),
+      classTeacher: asPlainArray(teacher.classTeacher).map((item) => ({
+        name: item.name,
+      })),
+    })),
+    total,
+    pages: Math.max(1, Math.ceil(total / limit)),
+    page,
+  };
 }

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { asPlainArray, toIsoDate } from "@/lib/server/serializers";
 
 const AnnouncementSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -15,6 +16,12 @@ const AnnouncementSchema = z.object({
 });
 
 export type AnnouncementFormData = z.infer<typeof AnnouncementSchema>;
+const VALID_ANNOUNCEMENT_PRIORITIES = [
+  "LOW",
+  "NORMAL",
+  "HIGH",
+  "URGENT",
+] as const;
 
 type ActionResult<T = void> =
   | { success: true; data?: T; error?: never }
@@ -200,11 +207,16 @@ export async function getAnnouncements({
   activeOnly?: boolean;
 }) {
   const { institutionId } = await getAuthContext();
+  const normalizedPriority = VALID_ANNOUNCEMENT_PRIORITIES.includes(
+    priority as (typeof VALID_ANNOUNCEMENT_PRIORITIES)[number],
+  )
+    ? priority
+    : "";
 
   const now = new Date();
   const where: Record<string, unknown> = {
     institutionId,
-    ...(priority && { priority }),
+    ...(normalizedPriority && { priority: normalizedPriority }),
     ...(activeOnly && {
       OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
     }),
@@ -226,5 +238,18 @@ export async function getAnnouncements({
     db.announcement.count({ where }),
   ]);
 
-  return { announcements, total, pages: Math.ceil(total / limit), page };
+  return {
+    announcements: asPlainArray(announcements).map((announcement) => ({
+      id: announcement.id,
+      title: announcement.title,
+      content: announcement.content,
+      priority: announcement.priority,
+      targetAudience: asPlainArray(announcement.targetAudience),
+      publishedAt: toIsoDate(announcement.publishedAt),
+      expiresAt: toIsoDate(announcement.expiresAt),
+    })),
+    total,
+    pages: Math.max(1, Math.ceil(total / limit)),
+    page,
+  };
 }

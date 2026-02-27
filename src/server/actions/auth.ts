@@ -97,11 +97,6 @@ export async function registerInstitution(
       slug = `${rawSlug}-${suffix++}`;
     }
 
-    // Parse name parts
-    const nameParts = adminName.trim().split(/\s+/);
-    const firstName = nameParts[0];
-    const lastName = nameParts.slice(1).join(" ") || firstName;
-
     // Create institution + admin user in a transaction
     await db.$transaction(async (tx) => {
       const institution = await tx.institution.create({
@@ -120,9 +115,7 @@ export async function registerInstitution(
         data: {
           email,
           name: adminName,
-          firstName,
-          lastName,
-          passwordHash,
+          password: passwordHash,
           role: "SUPER_ADMIN",
           institutionId: institution.id,
           emailVerified: new Date(),
@@ -237,12 +230,12 @@ export async function resetPassword(
       return { success: false, error: "Account not found." };
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     await db.$transaction([
       db.user.update({
         where: { id: user.id },
-        data: { passwordHash },
+        data: { password: hashedPassword },
       }),
       db.verificationToken.delete({
         where: { identifier_token: { identifier: email, token: hashed } },

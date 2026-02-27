@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getAnnouncements } from "@/server/actions/announcements";
 import { AnnouncementsClient } from "@/components/announcements/announcements-client";
 import { TableSkeleton } from "@/components/ui/skeletons";
+import { safeLoader } from "@/lib/server/safe-loader";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Announcements" };
@@ -23,7 +24,12 @@ export default async function AnnouncementsPage({ searchParams }: PageProps) {
   const search = params.search || "";
   const priority = params.priority || "";
 
-  const data = await getAnnouncements({ page, search, priority });
+  const data = await safeLoader(
+    "DASHBOARD_ANNOUNCEMENTS_DATA",
+    () => getAnnouncements({ page, search, priority }),
+    { announcements: [], total: 0, pages: 1, page },
+    { institutionId, page, priority },
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
