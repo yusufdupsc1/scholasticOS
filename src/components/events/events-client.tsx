@@ -65,7 +65,7 @@ function EventForm({ initial, onSuccess }: { initial?: Event; onSuccess: () => v
                 <Label htmlFor="ev-desc">Description</Label>
                 <Textarea id="ev-desc" value={form.description ?? ""} onChange={e => set("description", e.target.value)} rows={3} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="ev-start">Start Date/Time *</Label>
                     <Input id="ev-start" type="datetime-local" value={form.startDate} onChange={e => set("startDate", e.target.value)} required />
@@ -75,7 +75,7 @@ function EventForm({ initial, onSuccess }: { initial?: Event; onSuccess: () => v
                     <Input id="ev-end" type="datetime-local" value={form.endDate ?? ""} onChange={e => set("endDate", e.target.value)} />
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="ev-loc">Location</Label>
                     <Input id="ev-loc" value={form.location ?? ""} onChange={e => set("location", e.target.value)} placeholder="e.g. Main Hall" />
@@ -129,7 +129,7 @@ export function EventsClient({ events, total, pages, currentPage }: Props) {
                 </Dialog>
             </PageHeader>
 
-            <SearchInput placeholder="Search events..." className="w-64" />
+            <SearchInput placeholder="Search events..." className="w-full sm:w-64" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {events.length === 0 ? (

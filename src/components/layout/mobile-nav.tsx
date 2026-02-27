@@ -17,7 +17,7 @@ export function MobileNav({ session: _session }: { session: Session }) {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 grid h-14 grid-cols-4 border-t border-border bg-background lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-50 grid h-14 grid-cols-4 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] lg:hidden">
       {ITEMS.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (

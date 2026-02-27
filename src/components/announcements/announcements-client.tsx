@@ -75,7 +75,7 @@ function AnnouncementForm({ initial, onSuccess }: { initial?: Announcement; onSu
                 <Label htmlFor="an-content">Content *</Label>
                 <Textarea id="an-content" value={form.content} onChange={e => set("content", e.target.value)} rows={5} required />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label>Priority</Label>
                     <Select value={form.priority} onValueChange={v => set("priority", v as AnnouncementFormData["priority"])}>
@@ -139,7 +139,7 @@ export function AnnouncementsClient({ announcements, total, pages, currentPage }
                 </Dialog>
             </PageHeader>
 
-            <SearchInput placeholder="Search announcements..." className="w-64" />
+            <SearchInput placeholder="Search announcements..." className="w-full sm:w-64" />
 
             <div className="space-y-3">
                 {announcements.length === 0 ? (

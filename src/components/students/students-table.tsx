@@ -29,7 +29,7 @@ export function StudentsTable({ students, total, pages, currentPage }: Props) {
         <p className="text-sm text-muted-foreground">Showing {students.length} of {total}</p>
         <p className="text-sm text-muted-foreground">Page {currentPage} / {Math.max(pages, 1)}</p>
       </div>
-      <div className="overflow-x-auto">
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead>
             <tr className="text-muted-foreground">

@@ -63,7 +63,7 @@ function ClassForm({ initial, teachers, onSuccess }: { initial?: ClassRow; teach
                 <Label htmlFor="cl-name">Class Name *</Label>
                 <Input id="cl-name" value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Grade 10A" required />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="cl-grade">Grade *</Label>
                     <Input id="cl-grade" value={form.grade} onChange={e => set("grade", e.target.value)} placeholder="e.g. 10" required />
@@ -73,7 +73,7 @@ function ClassForm({ initial, teachers, onSuccess }: { initial?: ClassRow; teach
                     <Input id="cl-sec" value={form.section} onChange={e => set("section", e.target.value)} placeholder="e.g. A" required />
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="cl-cap">Capacity</Label>
                     <Input id="cl-cap" type="number" min={1} value={form.capacity} onChange={e => set("capacity", Number(e.target.value))} />
@@ -130,7 +130,7 @@ function SubjectForm({ initial, onSuccess }: { initial?: Subject; onSuccess: () 
                 <Label htmlFor="sub-name">Subject Name *</Label>
                 <Input id="sub-name" value={form.name} onChange={e => set("name", e.target.value)} required />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="sub-code">Code *</Label>
                     <Input id="sub-code" value={form.code} onChange={e => set("code", e.target.value)} placeholder="e.g. MATH101" required />
@@ -211,16 +211,17 @@ export function ClassesClient({ classes, subjects, teachers, total, pages, curre
             </PageHeader>
 
             <Tabs value={activeTab} onValueChange={handleTabChange}>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <TabsList>
                         <TabsTrigger value="classes">Classes ({total})</TabsTrigger>
                         <TabsTrigger value="subjects">Subjects ({subjects.length})</TabsTrigger>
                     </TabsList>
-                    <SearchInput placeholder="Search..." className="w-56" />
+                    <SearchInput placeholder="Search..." className="w-full sm:w-56" />
                 </div>
 
                 <TabsContent value="classes">
                     <div className="rounded-xl border border-border bg-card overflow-hidden">
+                        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                         <table className="w-full min-w-[640px] text-sm">
                             <thead className="border-b border-border bg-muted/30">
                                 <tr>
@@ -261,12 +262,14 @@ export function ClassesClient({ classes, subjects, teachers, total, pages, curre
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                     <DataTablePagination currentPage={currentPage} totalPages={pages} total={total} />
                 </TabsContent>
 
                 <TabsContent value="subjects">
                     <div className="rounded-xl border border-border bg-card overflow-hidden">
+                        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                         <table className="w-full min-w-[500px] text-sm">
                             <thead className="border-b border-border bg-muted/30">
                                 <tr>
@@ -302,6 +305,7 @@ export function ClassesClient({ classes, subjects, teachers, total, pages, curre
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </TabsContent>
             </Tabs>

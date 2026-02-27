@@ -70,7 +70,7 @@ function ProfileTab({ institution }: { institution: Institution }) {
                 <Label htmlFor="inst-name">Institution Name *</Label>
                 <Input id="inst-name" value={form.name} onChange={e => set("name", e.target.value)} required />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="inst-email">Contact Email</Label>
                     <Input id="inst-email" type="email" value={form.email ?? ""} onChange={e => set("email", e.target.value)} />
@@ -88,7 +88,7 @@ function ProfileTab({ institution }: { institution: Institution }) {
                 <Label htmlFor="inst-addr">Address</Label>
                 <Input id="inst-addr" value={form.address ?? ""} onChange={e => set("address", e.target.value)} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="inst-city">City</Label>
                     <Input id="inst-city" value={form.city ?? ""} onChange={e => set("city", e.target.value)} />
@@ -98,7 +98,7 @@ function ProfileTab({ institution }: { institution: Institution }) {
                     <Input id="inst-country" value={form.country ?? ""} onChange={e => set("country", e.target.value)} placeholder="Bangladesh" />
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label>Timezone</Label>
                     <Select value={form.timezone} onValueChange={v => set("timezone", v)}>
@@ -160,7 +160,7 @@ function AcademicTab({ settings }: { settings: SettingsRow }) {
         <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
             <div>
                 <h2 className="font-semibold mb-4">Academic Settings</h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
                         <Label htmlFor="s-year">Academic Year</Label>
                         <Input id="s-year" value={form.academicYear} onChange={e => set("academicYear", e.target.value)} placeholder="2024-2025" />
@@ -194,7 +194,7 @@ function AcademicTab({ settings }: { settings: SettingsRow }) {
 
             <div className="border-t border-border pt-5">
                 <h2 className="font-semibold mb-4">Finance Settings</h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
                         <Label htmlFor="s-latefee">Late Fee %</Label>
                         <Input id="s-latefee" type="number" min={0} max={100} step={0.1} value={form.lateFeePercent} onChange={e => set("lateFeePercent", Number(e.target.value))} />

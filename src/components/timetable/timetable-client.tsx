@@ -185,7 +185,7 @@ function TimetableForm({
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Start Time *</Label>
           <Input
@@ -285,7 +285,7 @@ export function TimetableClient({
           value={selectedClassId || "all"}
           onValueChange={handleClassChange}
         >
-          <SelectTrigger className="w-64">
+          <SelectTrigger className="w-full sm:w-64">
             <SelectValue placeholder="Select class" />
           </SelectTrigger>
           <SelectContent>

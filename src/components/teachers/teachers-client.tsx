@@ -8,7 +8,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SearchInput } from "@/components/ui/search-input";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,7 +70,7 @@ function TeacherForm({ initial, subjects: _subjects, onSuccess }: { initial?: Te
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="tf-first">First Name *</Label>
                     <Input id="tf-first" value={form.firstName} onChange={e => set("firstName", e.target.value)} required />
@@ -85,7 +84,7 @@ function TeacherForm({ initial, subjects: _subjects, onSuccess }: { initial?: Te
                 <Label htmlFor="tf-email">Email *</Label>
                 <Input id="tf-email" type="email" value={form.email} onChange={e => set("email", e.target.value)} required />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="tf-phone">Phone</Label>
                     <Input id="tf-phone" value={form.phone ?? ""} onChange={e => set("phone", e.target.value)} />
@@ -102,7 +101,7 @@ function TeacherForm({ initial, subjects: _subjects, onSuccess }: { initial?: Te
                     </Select>
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="tf-qual">Qualification</Label>
                     <Input id="tf-qual" value={form.qualification ?? ""} onChange={e => set("qualification", e.target.value)} />
@@ -112,7 +111,7 @@ function TeacherForm({ initial, subjects: _subjects, onSuccess }: { initial?: Te
                     <Input id="tf-spec" value={form.specialization ?? ""} onChange={e => set("specialization", e.target.value)} />
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="tf-salary">Salary</Label>
                     <Input id="tf-salary" type="number" step="0.01" value={form.salary ?? ""} onChange={e => set("salary", e.target.value)} placeholder="0.00" />
@@ -173,12 +172,12 @@ export function TeachersClient({ teachers, subjects, total, pages, currentPage }
                 </Dialog>
             </PageHeader>
 
-            <div className="flex items-center gap-3">
-                <SearchInput placeholder="Search teachers..." className="w-64" />
+            <div className="flex w-full items-center gap-3">
+                <SearchInput placeholder="Search teachers..." className="w-full sm:w-64" />
             </div>
 
             <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                     <table className="w-full min-w-[760px] text-sm">
                         <thead className="border-b border-border bg-muted/30">
                             <tr>

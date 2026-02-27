@@ -124,7 +124,7 @@ export function AttendanceClient({ classes, selectedClassId, selectedDate, summa
                     <div className="space-y-1.5">
                         <Label>Class</Label>
                         <Select value={classId} onValueChange={v => { setClassId(v); setLoaded(false); }}>
-                            <SelectTrigger className="w-48"><SelectValue placeholder="Select class" /></SelectTrigger>
+                            <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Select class" /></SelectTrigger>
                             <SelectContent>
                                 {classes.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                             </SelectContent>
@@ -132,7 +132,7 @@ export function AttendanceClient({ classes, selectedClassId, selectedDate, summa
                     </div>
                     <div className="space-y-1.5">
                         <Label>Date</Label>
-                        <Input type="date" value={date} onChange={e => { setDate(e.target.value); setLoaded(false); }} className="w-40" />
+                        <Input type="date" value={date} onChange={e => { setDate(e.target.value); setLoaded(false); }} className="w-full sm:w-40" />
                     </div>
                     <Button onClick={loadStudents} disabled={pending || !classId}>
                         <Users className="h-4 w-4 mr-1.5" /> Load Students
@@ -142,9 +142,9 @@ export function AttendanceClient({ classes, selectedClassId, selectedDate, summa
 
             {loaded && students.length > 0 && (
                 <div className="rounded-xl border border-border bg-card overflow-hidden">
-                    <div className="flex items-center justify-between p-4 border-b border-border">
+                    <div className="flex flex-col gap-3 p-4 border-b border-border sm:flex-row sm:items-center sm:justify-between">
                         <p className="font-semibold">{students.length} students</p>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             {(["PRESENT", "ABSENT"] as AttendanceStatus[]).map(s => (
                                 <Button key={s} variant="outline" size="sm" onClick={() => setAll(s)}>
                                     Mark All {STATUS_CONFIG[s].label}

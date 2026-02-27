@@ -13,12 +13,12 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, total, totalLabel = "total", children, className }: PageHeaderProps) {
     return (
-        <div className={cn("flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between", className)}>
+        <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", className)}>
             <div>
-                <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{title}</h1>
                     {total !== undefined && (
-                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-medium text-primary">
+                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary sm:text-sm">
                             {total.toLocaleString()} {totalLabel}
                         </span>
                     )}
@@ -27,7 +27,7 @@ export function PageHeader({ title, description, total, totalLabel = "total", ch
                     <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
                 )}
             </div>
-            {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
+            {children && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">{children}</div>}
         </div>
     );
 }

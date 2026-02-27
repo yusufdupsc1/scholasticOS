@@ -76,7 +76,7 @@ function GradeForm({ initial, subjects, onSuccess }: { initial?: Grade; subjects
                     </SelectContent>
                 </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="gr-score">Score *</Label>
                     <Input id="gr-score" type="number" min={0} step={0.01} value={form.score} onChange={e => set("score", e.target.value)} required />
@@ -150,10 +150,11 @@ export function GradesClient({ grades, subjects, distribution, total, pages, cur
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 <div className="lg:col-span-3 space-y-4">
-                    <div className="flex gap-3">
-                        <SearchInput placeholder="Search students..." className="w-64" />
+                    <div className="flex w-full gap-3">
+                        <SearchInput placeholder="Search students..." className="w-full sm:w-64" />
                     </div>
                     <div className="rounded-xl border border-border bg-card overflow-hidden">
+                        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                         <table className="w-full min-w-[680px] text-sm">
                             <thead className="border-b border-border bg-muted/30">
                                 <tr>
@@ -199,6 +200,7 @@ export function GradesClient({ grades, subjects, distribution, total, pages, cur
                                 ))}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                     <DataTablePagination currentPage={currentPage} totalPages={pages} total={total} />
                 </div>

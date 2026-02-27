@@ -77,7 +77,7 @@ function FeeForm({ students, onSuccess }: { students: Student[]; onSuccess: () =
                 <Label htmlFor="fee-title">Title *</Label>
                 <Input id="fee-title" value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Tuition Fee — Term 1" required />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="fee-amt">Amount *</Label>
                     <Input id="fee-amt" type="number" step="0.01" min={0.01} value={form.amount || ""} onChange={e => set("amount", e.target.value)} required />
@@ -94,7 +94,7 @@ function FeeForm({ students, onSuccess }: { students: Student[]; onSuccess: () =
                     </Select>
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="fee-due">Due Date *</Label>
                     <Input id="fee-due" type="date" value={form.dueDate} onChange={e => set("dueDate", e.target.value)} required />
@@ -192,7 +192,7 @@ export function FinanceClient({ fees, students, summary, total, pages, currentPa
             </PageHeader>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {summaryCards.map(({ label, value, icon: Icon, color, count, isCount }) => (
                     <div key={label} className="rounded-xl border border-border bg-card p-4">
                         <div className="flex items-center justify-between mb-2">
@@ -207,13 +207,13 @@ export function FinanceClient({ fees, students, summary, total, pages, currentPa
                 ))}
             </div>
 
-            <div className="flex gap-3">
-                <SearchInput placeholder="Search fees..." className="w-64" />
+            <div className="flex w-full gap-3">
+                <SearchInput placeholder="Search fees..." className="w-full sm:w-64" />
             </div>
 
             {/* Fees Table */}
             <div className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                     <table className="w-full min-w-[720px] text-sm">
                         <thead className="border-b border-border bg-muted/30">
                             <tr>
