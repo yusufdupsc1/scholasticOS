@@ -1,7 +1,7 @@
 // src/components/forms/login-form.tsx
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,11 +13,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
+
+const SCOPE_OPTIONS = [
+  {
+    value: "ADMIN",
+    label: "Admin",
+    hint: "Principal/office/admin accounts",
+  },
+  {
+    value: "TEACHER",
+    label: "Teacher",
+    hint: "Teacher portal access",
+  },
+  {
+    value: "STUDENT",
+    label: "Student",
+    hint: "Student portal access",
+  },
+  {
+    value: "PARENT",
+    label: "Parent",
+    hint: "Parent portal access",
+  },
+] as const;
 
 const LoginSchema = z.object({
   institution: z.string().optional(),
+  scope: z.enum(["ADMIN", "TEACHER", "STUDENT", "PARENT"]).default("ADMIN"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
+}).superRefine((value, ctx) => {
+  if (value.scope !== "ADMIN" && !value.institution?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Institution slug is required for teacher/student/parent login scope.",
+      path: ["institution"],
+    });
+  }
 });
 
 type LoginFormValues = z.infer<typeof LoginSchema>;
@@ -42,18 +75,60 @@ export function LoginForm({ callbackUrl, error, googleEnabled = false }: LoginFo
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
+  const [scopeCounts, setScopeCounts] = useState<Record<string, number> | null>(null);
+  const [scopeInfoError, setScopeInfoError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(
     error ? (AUTH_ERRORS[error] ?? AUTH_ERRORS.default) : null,
   );
 
   const {
     register,
+    watch,
+    setValue,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(LoginSchema),
-    defaultValues: { institution: "", email: "", password: "" },
+    defaultValues: { institution: "", scope: "ADMIN", email: "", password: "" },
   });
+  const selectedScope = watch("scope");
+  const institutionSlug = watch("institution")?.trim().toLowerCase() ?? "";
+
+  useEffect(() => {
+    if (!institutionSlug) {
+      setScopeCounts(null);
+      setScopeInfoError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/auth/scopes?institution=${encodeURIComponent(institutionSlug)}`,
+          { signal: controller.signal },
+        );
+        const json = await res.json();
+        if (!res.ok || json?.error) {
+          setScopeCounts(null);
+          setScopeInfoError("Institution not found or no active users.");
+          return;
+        }
+        setScopeCounts(json?.data?.counts ?? null);
+        setScopeInfoError(null);
+      } catch {
+        if (!controller.signal.aborted) {
+          setScopeCounts(null);
+          setScopeInfoError("Could not load scope info.");
+        }
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [institutionSlug]);
 
   const onSubmit = (values: LoginFormValues) => {
     setFormError(null);
@@ -61,6 +136,7 @@ export function LoginForm({ callbackUrl, error, googleEnabled = false }: LoginFo
     startTransition(async () => {
       const result = await signIn("credentials", {
         institution: values.institution?.trim(),
+        scope: values.scope,
         email: values.email,
         password: values.password,
         redirect: false,
@@ -102,6 +178,34 @@ export function LoginForm({ callbackUrl, error, googleEnabled = false }: LoginFo
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-1.5">
+          <Label>Login Scope</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {SCOPE_OPTIONS.map((scope) => (
+              <button
+                key={scope.value}
+                type="button"
+                onClick={() => setValue("scope", scope.value)}
+                className={cn(
+                  "rounded-lg border px-3 py-2 text-left transition-colors",
+                  selectedScope === scope.value
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-background hover:bg-muted/50",
+                )}
+                disabled={isPending}
+              >
+                <p className="text-sm font-medium">{scope.label}</p>
+                <p className="text-[11px] text-muted-foreground">{scope.hint}</p>
+                {scopeCounts && institutionSlug ? (
+                  <p className="mt-1 text-[11px] text-primary">
+                    {scopeCounts[scope.value] ?? 0} account(s)
+                  </p>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
           <Label htmlFor="institution">Institution Slug (optional)</Label>
           <Input
             id="institution"
@@ -111,6 +215,12 @@ export function LoginForm({ callbackUrl, error, googleEnabled = false }: LoginFo
             disabled={isPending}
             {...register("institution")}
           />
+          {scopeInfoError && institutionSlug ? (
+            <p className="text-xs text-muted-foreground">{scopeInfoError}</p>
+          ) : null}
+          {errors.institution && (
+            <p className="text-xs text-destructive">{errors.institution.message}</p>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">Email address</Label>

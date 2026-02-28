@@ -183,11 +183,13 @@ const providers: any[] = [
     name: "Credentials",
     credentials: {
       institution: { label: "Institution", type: "text" },
+      scope: { label: "Scope", type: "text" },
       email: { label: "Email", type: "email" },
       password: { label: "Password", type: "password" },
     },
     async authorize(credentials) {
       const institutionInput = credentials?.institution;
+      const scopeInput = credentials?.scope;
       const email = credentials?.email;
       const password = credentials?.password;
 
@@ -204,10 +206,18 @@ const providers: any[] = [
         typeof institutionInput === "string"
           ? institutionInput.trim().toLowerCase()
           : "";
+      const normalizedScope =
+        typeof scopeInput === "string" ? scopeInput.trim().toUpperCase() : "ADMIN";
       const normalizedEmail = email.trim().toLowerCase();
+      const userRoleFilter =
+        normalizedScope === "ADMIN"
+          ? { in: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL", "STAFF"] }
+          : { equals: normalizedScope };
+
       let user = await db.user.findFirst({
         where: {
           email: { equals: normalizedEmail, mode: "insensitive" },
+          role: userRoleFilter,
           ...(normalizedInstitution && {
             institution: {
               slug: { equals: normalizedInstitution, mode: "insensitive" },
@@ -222,6 +232,7 @@ const providers: any[] = [
         user = await db.user.findFirst({
           where: {
             email: { equals: normalizedEmail, mode: "insensitive" },
+            role: userRoleFilter,
             ...(normalizedInstitution && {
               institution: {
                 slug: { equals: normalizedInstitution, mode: "insensitive" },
@@ -250,6 +261,9 @@ const providers: any[] = [
       }
 
       if (normalizedInstitution && normalizedInstitution !== DEMO_INSTITUTION.slug) {
+        return null;
+      }
+      if (normalizedScope !== "ADMIN") {
         return null;
       }
 
