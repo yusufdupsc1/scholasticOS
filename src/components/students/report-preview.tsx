@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, Eye, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,32 @@ interface ReportPreviewProps {
   onPreviewRecordHandled?: () => void;
 }
 
+function isDataPdfUrl(value: string) {
+  return /^data:application\/pdf;base64,/i.test(value);
+}
+
+function toBlobUrl(value: string): string | null {
+  if (!isDataPdfUrl(value)) return value;
+
+  try {
+    const [meta, base64] = value.split(",", 2);
+    if (!meta || !base64) return null;
+
+    const mime = meta.match(/^data:([^;]+);base64$/i)?.[1] ?? "application/pdf";
+    const binary = window.atob(base64);
+    const arrayBuffer = new ArrayBuffer(binary.length);
+    const bytes = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    const blob = new Blob([arrayBuffer], { type: mime });
+    return URL.createObjectURL(blob);
+  } catch {
+    return null;
+  }
+}
+
 export function ReportPreview({
   loading,
   selectedStudentName,
@@ -58,6 +84,43 @@ export function ReportPreview({
 
   const activePreviewId = manualPreviewId ?? previewRecordId ?? null;
   const previewRecord = activePreviewId ? recordById[activePreviewId] ?? null : null;
+  const previewBlobUrl = useMemo(() => {
+    if (!previewRecord || !isDataPdfUrl(previewRecord.fileUrl)) return null;
+    return toBlobUrl(previewRecord.fileUrl);
+  }, [previewRecord]);
+  const previewUrl = previewBlobUrl ?? previewRecord?.fileUrl ?? null;
+
+  useEffect(() => {
+    return () => {
+      if (previewBlobUrl?.startsWith("blob:")) URL.revokeObjectURL(previewBlobUrl);
+    };
+  }, [previewBlobUrl]);
+
+  function openInNewTab(record: StudentRecordItem) {
+    const resolved = toBlobUrl(record.fileUrl);
+    if (!resolved) return;
+
+    window.open(resolved, "_blank", "noopener,noreferrer");
+    if (resolved.startsWith("blob:")) {
+      window.setTimeout(() => URL.revokeObjectURL(resolved), 60_000);
+    }
+  }
+
+  function downloadRecord(record: StudentRecordItem) {
+    const resolved = toBlobUrl(record.fileUrl);
+    if (!resolved) return;
+
+    const link = document.createElement("a");
+    link.href = resolved;
+    link.download = record.fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (resolved.startsWith("blob:")) {
+      window.setTimeout(() => URL.revokeObjectURL(resolved), 5_000);
+    }
+  }
 
   return (
     <section className="rounded-xl border border-border bg-card p-4">
@@ -100,11 +163,14 @@ export function ReportPreview({
                       >
                         <Eye className="mr-1 h-3.5 w-3.5" /> Preview
                       </Button>
-                      <a href={record.fileUrl} download={record.fileName}>
-                        <Button type="button" size="sm" variant="outline">
-                          <Download className="mr-1 h-3.5 w-3.5" /> Download
-                        </Button>
-                      </a>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => downloadRecord(record)}
+                      >
+                        <Download className="mr-1 h-3.5 w-3.5" /> Download
+                      </Button>
                       <Button
                         type="button"
                         size="sm"
@@ -145,27 +211,30 @@ export function ReportPreview({
           {previewRecord ? (
             <div className="space-y-3">
               <div className="h-[70svh] overflow-hidden rounded-lg border border-border">
-                <iframe
-                  title={`${previewRecord.title} Preview`}
-                  src={previewRecord.fileUrl}
-                  className="h-full w-full"
-                />
+                {previewUrl ? (
+                  <iframe
+                    title={`${previewRecord.title} Preview`}
+                    src={previewUrl}
+                    className="h-full w-full"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                    Unable to render preview. Use open/download below.
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-2">
-                <a
-                  href={previewRecord.fileUrl}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openInNewTab(previewRecord)}
                   className="text-xs text-muted-foreground underline-offset-4 hover:underline"
                 >
                   Open in new tab
-                </a>
-                <a href={previewRecord.fileUrl} download={previewRecord.fileName}>
-                  <Button type="button" size="sm">
-                    <Download className="mr-1 h-3.5 w-3.5" /> Download
-                  </Button>
-                </a>
+                </button>
+                <Button type="button" size="sm" onClick={() => downloadRecord(previewRecord)}>
+                  <Download className="mr-1 h-3.5 w-3.5" /> Download
+                </Button>
               </div>
             </div>
           ) : null}
