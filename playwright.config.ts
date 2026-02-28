@@ -1,6 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const fullMatrix = process.env.PLAYWRIGHT_FULL_MATRIX === "true";
+const host = "127.0.0.1";
+const port = Number(process.env.PLAYWRIGHT_PORT || 3100);
+const appUrl = process.env.PLAYWRIGHT_BASE_URL || `http://${host}:${port}`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -12,7 +15,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 1,
   reporter: [["html", { outputFolder: "playwright-report" }], ["list"]],
   use: {
-    baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://127.0.0.1:3000",
+    baseURL: appUrl,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -49,15 +52,14 @@ export default defineConfig({
         },
       ],
   webServer: {
-    command:
-      "pnpm exec next build --webpack && pnpm exec next start -H 127.0.0.1 -p 3000",
-    url: "http://127.0.0.1:3000",
+    command: `pnpm exec next build --webpack && pnpm exec next start -H ${host} -p ${port}`,
+    url: appUrl,
     reuseExistingServer: false,
     timeout: 420000,
     env: {
       ...process.env,
       SKIP_ENV_VALIDATION: "true",
-      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://127.0.0.1:3000",
+      NEXT_PUBLIC_APP_URL: appUrl,
       AUTH_SECRET:
         process.env.AUTH_SECRET || "playwright-secret-32-chars-minimum",
     },

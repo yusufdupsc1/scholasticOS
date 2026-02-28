@@ -30,7 +30,7 @@ test.describe("Academic Route Smoke", () => {
   test("attendance page renders", async ({ page }) => {
     await page.goto("/dashboard/attendance", { waitUntil: "domcontentloaded" });
 
-    await expect(page.getByRole("heading", { name: /attendance/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Attendance", exact: true })).toBeVisible();
   });
 
   test("grades page renders", async ({ page }) => {
