@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Edit3, Trash2 } from "lucide-react";
+import { Edit3, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -59,14 +59,54 @@ type EditState = {
   country: string;
 };
 
+type CreateState = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  gender: "MALE" | "FEMALE" | "OTHER" | "";
+  classId: string;
+  address: string;
+  city: string;
+  country: string;
+  parentFirstName: string;
+  parentLastName: string;
+  parentEmail: string;
+  parentPhone: string;
+  parentRelation: string;
+};
+
 function toDateInputValue(value?: string | null) {
   if (!value) return "";
   return value.slice(0, 10);
 }
 
+function getInitialCreateState(): CreateState {
+  return {
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    dateOfBirth: "",
+    gender: "",
+    classId: "",
+    address: "",
+    city: "",
+    country: "Bangladesh",
+    parentFirstName: "",
+    parentLastName: "",
+    parentEmail: "",
+    parentPhone: "",
+    parentRelation: "Guardian",
+  };
+}
+
 export function StudentsTable({ students, classes, total, pages, currentPage }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState<CreateState>(getInitialCreateState());
   const [editing, setEditing] = useState<EditState | null>(null);
 
   const classOptions = useMemo(() => classes, [classes]);
@@ -93,6 +133,59 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
 
   function updateEdit<K extends keyof EditState>(key: K, value: EditState[K]) {
     setEditing((prev) => (prev ? { ...prev, [key]: value } : prev));
+  }
+
+  function updateCreate<K extends keyof CreateState>(key: K, value: CreateState[K]) {
+    setCreating((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function resetCreateForm() {
+    setCreating(getInitialCreateState());
+  }
+
+  async function handleCreate() {
+    if (!creating.firstName.trim() || !creating.lastName.trim()) {
+      toast.error("First name and last name are required");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/v1/students", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            firstName: creating.firstName.trim(),
+            lastName: creating.lastName.trim(),
+            email: creating.email.trim(),
+            phone: creating.phone.trim(),
+            dateOfBirth: creating.dateOfBirth || undefined,
+            gender: creating.gender || undefined,
+            classId: creating.classId || undefined,
+            address: creating.address.trim(),
+            city: creating.city.trim(),
+            country: creating.country.trim(),
+            parentFirstName: creating.parentFirstName.trim(),
+            parentLastName: creating.parentLastName.trim(),
+            parentEmail: creating.parentEmail.trim(),
+            parentPhone: creating.parentPhone.trim(),
+            parentRelation: creating.parentRelation.trim(),
+          }),
+        });
+
+        const json = await res.json();
+        if (!res.ok || json?.error) {
+          throw new Error(json?.error?.message ?? "Failed to create student");
+        }
+
+        toast.success("Student created");
+        setCreateOpen(false);
+        resetCreateForm();
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to create student");
+      }
+    });
   }
 
   async function handleSave() {
@@ -159,9 +252,15 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
 
   return (
     <section className="rounded-xl border border-border bg-card p-4">
-      <div className="mb-3 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">Showing {students.length} of {total}</p>
-        <p className="text-sm text-muted-foreground">Page {currentPage} / {Math.max(pages, 1)}</p>
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-0.5">
+          <p className="text-sm text-muted-foreground">Showing {students.length} of {total}</p>
+          <p className="text-sm text-muted-foreground">Page {currentPage} / {Math.max(pages, 1)}</p>
+        </div>
+        <Button type="button" size="sm" onClick={() => setCreateOpen(true)} disabled={pending}>
+          <Plus className="mr-1.5 h-4 w-4" />
+          Add Student
+        </Button>
       </div>
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <table className="w-full min-w-[760px] text-left text-sm">
@@ -212,6 +311,117 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
           </tbody>
         </table>
       </div>
+
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) resetCreateForm();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Student</DialogTitle>
+            <DialogDescription>Create a student profile and optional guardian details.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="create-firstName">First Name *</Label>
+                <Input id="create-firstName" value={creating.firstName} onChange={(e) => updateCreate("firstName", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-lastName">Last Name *</Label>
+                <Input id="create-lastName" value={creating.lastName} onChange={(e) => updateCreate("lastName", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-email">Email</Label>
+                <Input id="create-email" type="email" value={creating.email} onChange={(e) => updateCreate("email", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-phone">Phone</Label>
+                <Input id="create-phone" value={creating.phone} onChange={(e) => updateCreate("phone", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-dob">Date of Birth</Label>
+                <Input id="create-dob" type="date" value={creating.dateOfBirth} onChange={(e) => updateCreate("dateOfBirth", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-gender">Gender</Label>
+                <select
+                  id="create-gender"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={creating.gender}
+                  onChange={(e) => updateCreate("gender", e.target.value as CreateState["gender"])}
+                >
+                  <option value="">Select gender</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="create-class">Class</Label>
+                <select
+                  id="create-class"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={creating.classId}
+                  onChange={(e) => updateCreate("classId", e.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {classOptions.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="create-address">Address</Label>
+                <Input id="create-address" value={creating.address} onChange={(e) => updateCreate("address", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-city">City</Label>
+                <Input id="create-city" value={creating.city} onChange={(e) => updateCreate("city", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-country">Country</Label>
+                <Input id="create-country" value={creating.country} onChange={(e) => updateCreate("country", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-parentFirstName">Guardian First Name</Label>
+                <Input id="create-parentFirstName" value={creating.parentFirstName} onChange={(e) => updateCreate("parentFirstName", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-parentLastName">Guardian Last Name</Label>
+                <Input id="create-parentLastName" value={creating.parentLastName} onChange={(e) => updateCreate("parentLastName", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-parentEmail">Guardian Email</Label>
+                <Input id="create-parentEmail" type="email" value={creating.parentEmail} onChange={(e) => updateCreate("parentEmail", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-parentPhone">Guardian Phone</Label>
+                <Input id="create-parentPhone" value={creating.parentPhone} onChange={(e) => updateCreate("parentPhone", e.target.value)} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="create-parentRelation">Guardian Relation</Label>
+                <Input id="create-parentRelation" value={creating.parentRelation} onChange={(e) => updateCreate("parentRelation", e.target.value)} />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} disabled={pending}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleCreate} disabled={pending}>
+                Create Student
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent>

@@ -204,6 +204,14 @@ const providers: any[] = [
         include: { institution: { select: { name: true, slug: true } } },
       });
 
+      // Backward compatibility for accounts stored with mixed-case email.
+      if (!user) {
+        user = await db.user.findFirst({
+          where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+          include: { institution: { select: { name: true, slug: true } } },
+        });
+      }
+
       if (user?.password && user.isActive) {
         const isValid = await bcrypt.compare(password, user.password);
         if (isValid) {

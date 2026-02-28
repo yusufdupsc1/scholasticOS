@@ -70,11 +70,15 @@ export async function registerInstitution(
     };
   }
 
-  const { institutionName, adminName, email, password } = parsed.data;
+  const { institutionName, adminName, password } = parsed.data;
+  const email = parsed.data.email.trim().toLowerCase();
 
   try {
     // Check if email already registered
-    const existing = await db.user.findUnique({ where: { email } });
+    const existing = await db.user.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+      select: { id: true },
+    });
     if (existing) {
       return {
         success: false,
@@ -166,10 +170,13 @@ export async function forgotPassword(
     };
   }
 
-  const { email } = parsed.data;
+  const email = parsed.data.email.trim().toLowerCase();
 
   try {
-    const user = await db.user.findUnique({ where: { email } });
+    const user = await db.user.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+      select: { id: true },
+    });
 
     // Always return success to prevent email enumeration
     if (!user) return { success: true };
@@ -215,12 +222,13 @@ export async function resetPassword(
   }
 
   const { token, password } = parsed.data;
+  const normalizedEmail = email.trim().toLowerCase();
 
   try {
     const hashed = crypto.createHash("sha256").update(token).digest("hex");
 
     const record = await db.verificationToken.findFirst({
-      where: { identifier: email, token: hashed },
+      where: { identifier: normalizedEmail, token: hashed },
     });
 
     if (!record) {
@@ -229,7 +237,9 @@ export async function resetPassword(
 
     if (record.expires < new Date()) {
       await db.verificationToken.delete({
-        where: { identifier_token: { identifier: email, token: hashed } },
+        where: {
+          identifier_token: { identifier: normalizedEmail, token: hashed },
+        },
       });
       return {
         success: false,
@@ -237,7 +247,10 @@ export async function resetPassword(
       };
     }
 
-    const user = await db.user.findUnique({ where: { email } });
+    const user = await db.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+      select: { id: true },
+    });
     if (!user) {
       return { success: false, error: "Account not found." };
     }
@@ -250,7 +263,9 @@ export async function resetPassword(
         data: { password: hashedPassword },
       }),
       db.verificationToken.delete({
-        where: { identifier_token: { identifier: email, token: hashed } },
+        where: {
+          identifier_token: { identifier: normalizedEmail, token: hashed },
+        },
       }),
     ]);
 

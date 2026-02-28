@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Pencil, UserX, Mail, Phone, BookOpen } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -137,15 +138,25 @@ function TeacherForm({ initial, subjects: _subjects, onSuccess }: { initial?: Te
 }
 
 export function TeachersClient({ teachers, subjects, total, pages, currentPage }: Props) {
+    const router = useRouter();
     const [open, setOpen] = useState(false);
     const [editTeacher, setEditTeacher] = useState<Teacher | null>(null);
-    const [, startTransition] = useTransition();
+    const [pending, startTransition] = useTransition();
+
+    const handleFormSuccess = () => {
+        setOpen(false);
+        setEditTeacher(null);
+        router.refresh();
+    };
 
     const handleDelete = (id: string, name: string) => {
         if (!confirm(`Deactivate ${name}?`)) return;
         startTransition(async () => {
             const res = await deleteTeacher(id);
-            if (res.success) toast.success("Teacher deactivated");
+            if (res.success) {
+                toast.success("Teacher deactivated");
+                router.refresh();
+            }
             else toast.error(res.error);
         });
     };
@@ -155,7 +166,7 @@ export function TeachersClient({ teachers, subjects, total, pages, currentPage }
             <PageHeader title="Teachers" total={total} totalLabel="teachers">
                 <Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger asChild>
-                        <Button size="sm" className="w-full sm:w-auto" onClick={() => setEditTeacher(null)}>
+                        <Button size="sm" className="w-full sm:w-auto" onClick={() => setEditTeacher(null)} disabled={pending}>
                             <Plus className="h-4 w-4 mr-1.5" /> Add Teacher
                         </Button>
                     </DialogTrigger>
@@ -164,9 +175,10 @@ export function TeachersClient({ teachers, subjects, total, pages, currentPage }
                             <DialogTitle>{editTeacher ? "Edit Teacher" : "Add New Teacher"}</DialogTitle>
                         </DialogHeader>
                         <TeacherForm
+                            key={editTeacher?.id ?? "new-teacher"}
                             initial={editTeacher ?? undefined}
                             subjects={subjects}
-                            onSuccess={() => setOpen(false)}
+                            onSuccess={handleFormSuccess}
                         />
                     </DialogContent>
                 </Dialog>
@@ -219,10 +231,10 @@ export function TeachersClient({ teachers, subjects, total, pages, currentPage }
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditTeacher(t); setOpen(true); }}>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditTeacher(t); setOpen(true); }} disabled={pending}>
                                                 <Pencil className="h-3.5 w-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(t.id, `${t.firstName} ${t.lastName}`)}>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(t.id, `${t.firstName} ${t.lastName}`)} disabled={pending}>
                                                 <UserX className="h-3.5 w-3.5" />
                                             </Button>
                                         </div>
