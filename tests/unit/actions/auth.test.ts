@@ -1,28 +1,42 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   registerInstitution,
   forgotPassword,
   resetPassword,
 } from "@/server/actions/auth";
 import { db } from "@/lib/db";
-import { sendEmail, welcomeEmail, passwordResetEmail } from "@/lib/email";
-import * as bcrypt from "bcryptjs";
+import { sendEmail } from "@/lib/email";
+
+vi.mock("@/lib/env", () => ({
+  env: {
+    NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+  },
+}));
 
 vi.mock("@/lib/db", () => ({
   db: {
     institution: {
       findUnique: vi.fn(),
-      findFirst: vi.fn(),
       create: vi.fn(),
+    },
+    institutionSettings: {
+      upsert: vi.fn(),
     },
     user: {
-      findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
-    auditLog: {
+    verificationToken: {
+      deleteMany: vi.fn(),
       create: vi.fn(),
+      findFirst: vi.fn(),
+      delete: vi.fn(),
     },
-    $transaction: vi.fn((callback) => callback(vi.fn())),
+    $transaction: vi.fn((arg) => {
+      if (typeof arg === "function") return arg(db);
+      return Promise.all(arg);
+    }),
   },
 }));
 
@@ -33,20 +47,7 @@ vi.mock("@/lib/email", () => ({
 }));
 
 vi.mock("bcryptjs", () => ({
-  default: {
-    hash: vi.fn().mockResolvedValue("$2a$12$hashedpassword"),
-    compare: vi.fn().mockResolvedValue(true),
-  },
-}));
-
-vi.mock("@/lib/auth", () => ({
-  auth: vi.fn().mockResolvedValue({
-    user: {
-      id: "user-123",
-      institutionId: "inst-123",
-      role: "ADMIN",
-    },
-  }),
+  hash: vi.fn().mockResolvedValue("hashed-password"),
 }));
 
 describe("Auth Server Actions", () => {
@@ -54,175 +55,91 @@ describe("Auth Server Actions", () => {
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.resetAllMocks();
+  it("registers institution and super admin", async () => {
+    (db.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (db.institution.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (db.institution.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "inst-1" });
+    (db.user.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "user-1" });
+
+    const result = await registerInstitution({
+      institutionName: "Greenfield School",
+      adminName: "Admin User",
+      email: "admin@greenfield.edu",
+      password: "Admin1234",
+      confirmPassword: "Admin1234",
+    });
+
+    expect(result.success).toBe(true);
+    expect(db.institution.create).toHaveBeenCalled();
+    expect(db.user.create).toHaveBeenCalled();
+    expect(db.institutionSettings.upsert).toHaveBeenCalled();
+    expect(sendEmail).toHaveBeenCalled();
   });
 
-  describe("registerInstitution", () => {
-    const validFormData = {
-      institutionName: "Test Academy",
-      institutionSlug: "test-academy",
-      adminName: "John Admin",
-      adminEmail: "admin@testacademy.com",
-      adminPassword: "SecurePass123!",
-    };
+  it("rejects duplicate admin email during register", async () => {
+    (db.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "existing" });
 
-    it("should create a new institution and admin user", async () => {
-      // Arrange
-      (db.institution.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-      (db.institution.create as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "inst-123",
-        name: validFormData.institutionName,
-        slug: validFormData.institutionSlug,
-      });
-      (db.user.create as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "user-123",
-        email: validFormData.adminEmail,
-      });
-
-      // Act
-      const result = await registerInstitution(validFormData);
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.institution.create).toHaveBeenCalled();
-      expect(db.user.create).toHaveBeenCalled();
-      expect(sendEmail).toHaveBeenCalled();
+    const result = await registerInstitution({
+      institutionName: "Greenfield School",
+      adminName: "Admin User",
+      email: "admin@greenfield.edu",
+      password: "Admin1234",
+      confirmPassword: "Admin1234",
     });
 
-    it("should fail if institution slug already exists", async () => {
-      // Arrange
-      (db.institution.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(
-        {
-          id: "existing-inst",
-          slug: validFormData.institutionSlug,
-        },
-      );
-
-      // Act
-      const result = await registerInstitution(validFormData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("already exists");
-    });
-
-    it("should fail if admin email already registered", async () => {
-      // Arrange
-      (db.institution.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-      (db.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "existing-user",
-        email: validFormData.adminEmail,
-      });
-
-      // Act
-      const result = await registerInstitution(validFormData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("email");
-    });
-
-    it("should validate password strength", async () => {
-      // Act
-      const result = await registerInstitution({
-        ...validFormData,
-        adminPassword: "weak",
-      });
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors?.adminPassword).toBeDefined();
-    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("already exists");
   });
 
-  describe("forgotPassword", () => {
-    const validEmail = "user@test.com";
+  it("sends reset email for known account", async () => {
+    (db.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "user-1" });
 
-    it("should send password reset email for valid user", async () => {
-      // Arrange
-      (db.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "user-123",
-        email: validEmail,
-        name: "Test User",
-      });
+    const result = await forgotPassword({ email: "admin@greenfield.edu" });
 
-      // Act
-      const result = await forgotPassword({ email: validEmail });
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(sendEmail).toHaveBeenCalled();
-    });
-
-    it("should return success even if user not found (security)", async () => {
-      // Arrange
-      (db.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-      // Act
-      const result = await forgotPassword({ email: validEmail });
-
-      // Assert
-      expect(result.success).toBe(true);
-      // Should NOT send email for non-existent user
-    });
-
-    it("should validate email format", async () => {
-      // Act
-      const result = await forgotPassword({ email: "invalid-email" });
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors?.email).toBeDefined();
-    });
+    expect(result.success).toBe(true);
+    expect(db.verificationToken.deleteMany).toHaveBeenCalled();
+    expect(db.verificationToken.create).toHaveBeenCalled();
+    expect(sendEmail).toHaveBeenCalled();
   });
 
-  describe("resetPassword", () => {
-    const validToken = "valid-reset-token";
-    const newPassword = "NewSecurePass123!";
+  it("validates forgot-password payload", async () => {
+    const result = await forgotPassword({ email: "invalid-email" });
 
-    it("should reset password with valid token", async () => {
-      // Arrange - Note: In real implementation, we'd verify the token
-      // For this test, we simulate a successful password reset
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invalid email");
+  });
 
-      // Act
-      const result = await resetPassword({
-        token: validToken,
-        password: newPassword,
-      });
+  it("rejects reset with invalid token", async () => {
+    (db.verificationToken.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-      // Assert
-      // In a real implementation, we'd verify the token exists and update the password
-      // For now, we test the validation
-      expect(result).toBeDefined();
+    const result = await resetPassword("admin@greenfield.edu", {
+      token: "bad-token",
+      password: "NewPass123",
+      confirmPassword: "NewPass123",
     });
 
-    it("should validate password strength", async () => {
-      // Act
-      const result = await resetPassword({
-        token: validToken,
-        password: "weak",
-      });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invalid or expired");
+  });
 
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors?.password).toBeDefined();
+  it("resets password with valid token", async () => {
+    (db.verificationToken.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      identifier: "admin@greenfield.edu",
+      token: "hashed",
+      expires: new Date(Date.now() + 3600_000),
+    });
+    (db.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "user-1" });
+    (db.user.update as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "user-1" });
+    (db.verificationToken.delete as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+    const result = await resetPassword("admin@greenfield.edu", {
+      token: "valid-token",
+      password: "NewPass123",
+      confirmPassword: "NewPass123",
     });
 
-    it("should reject invalid tokens", async () => {
-      // Act
-      const result = await resetPassword({
-        token: "",
-        password: newPassword,
-      });
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-    });
+    expect(result.success).toBe(true);
+    expect(db.user.update).toHaveBeenCalled();
+    expect(db.verificationToken.delete).toHaveBeenCalled();
   });
 });

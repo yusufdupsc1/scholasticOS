@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createAnnouncement,
   updateAnnouncement,
@@ -41,10 +41,7 @@ vi.mock("next/cache", () => ({
 describe("Announcements Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.resetAllMocks();
+    (db.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback) => callback(db));
   });
 
   describe("createAnnouncement", () => {
@@ -222,7 +219,12 @@ describe("Announcements Server Actions", () => {
       const result = await getAnnouncements({ page: 1, search: "" });
 
       // Assert
-      expect(result.announcements).toEqual(mockAnnouncements);
+      expect(result.announcements).toHaveLength(2);
+      expect(result.announcements[0]).toMatchObject({
+        id: "1",
+        title: "Welcome",
+        priority: "NORMAL",
+      });
       expect(result.total).toBe(2);
     });
 

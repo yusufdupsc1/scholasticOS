@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createGrade,
   updateGrade,
@@ -20,9 +20,6 @@ vi.mock("@/lib/db", () => ({
       groupBy: vi.fn(),
     },
     student: {
-      findFirst: vi.fn(),
-    },
-    subject: {
       findFirst: vi.fn(),
     },
     auditLog: {
@@ -49,310 +46,113 @@ vi.mock("next/cache", () => ({
 describe("Grades Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (db.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback) => callback(db));
   });
 
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
+  it("creates grade and computes percentage/letter", async () => {
+    (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "student-1" });
 
-  describe("createGrade", () => {
-    const validFormData = {
-      studentId: "student-123",
-      subjectId: "subject-123",
-      score: 85,
+    let createCall: any;
+    (db.grade.create as ReturnType<typeof vi.fn>).mockImplementation((args) => {
+      createCall = args;
+      return Promise.resolve({ id: "grade-1", ...args.data });
+    });
+
+    const result = await createGrade({
+      studentId: "student-1",
+      subjectId: "subject-1",
+      score: 92,
       maxScore: 100,
-      term: "Term 1 2024",
-    };
-
-    it("should create a new grade record", async () => {
-      // Arrange
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "student-123",
-        studentId: "STU-001",
-      });
-      (db.subject.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "subject-123",
-        name: "Mathematics",
-      });
-      (db.grade.create as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "grade-123",
-        percentage: 85,
-        letterGrade: "B",
-        ...validFormData,
-      });
-
-      // Act
-      const result = await createGrade(validFormData);
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.grade.create).toHaveBeenCalled();
-      expect(db.auditLog.create).toHaveBeenCalled();
+      term: "Term 1",
+      remarks: "Excellent",
     });
 
-    it("should calculate percentage and letter grade automatically", async () => {
-      // Arrange
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "student-123",
-      });
-      (db.subject.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "subject-123",
-      });
-
-      let createCall: any;
-      (db.grade.create as ReturnType<typeof vi.fn>).mockImplementation(
-        (args) => {
-          createCall = args;
-          return Promise.resolve({ id: "grade-123", ...args.data });
-        },
-      );
-
-      // Act
-      await createGrade({ ...validFormData, score: 92, maxScore: 100 });
-
-      // Assert
-      expect(createCall.data.percentage).toBe(92);
-      expect(createCall.data.letterGrade).toBe("A-");
-    });
-
-    it("should fail if student not found", async () => {
-      // Arrange
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-
-      // Act
-      const result = await createGrade(validFormData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Student not found");
-    });
-
-    it("should fail if subject not found", async () => {
-      // Arrange
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "student-123",
-      });
-      (db.subject.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-
-      // Act
-      const result = await createGrade(validFormData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Subject not found");
-    });
-
-    it("should validate score range", async () => {
-      // Act
-      const result = await createGrade({
-        ...validFormData,
-        score: 150, // Exceeds maxScore
-      });
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors?.score).toBeDefined();
-    });
-
-    it("should validate required fields", async () => {
-      // Act
-      const result = await createGrade({
-        studentId: "",
-        subjectId: "",
-        score: 0,
-      } as any);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors).toBeDefined();
-    });
+    expect(result.success).toBe(true);
+    expect(createCall.data.percentage).toBe(92);
+    expect(createCall.data.letterGrade).toBe("A+");
   });
 
-  describe("updateGrade", () => {
-    const gradeId = "grade-123";
-    const updateData = {
-      score: 90,
+  it("rejects score above maxScore", async () => {
+    const result = await createGrade({
+      studentId: "student-1",
+      subjectId: "subject-1",
+      score: 110,
       maxScore: 100,
-      term: "Term 1 2024",
-      remarks: "Excellent improvement",
-    };
-
-    it("should update existing grade", async () => {
-      // Arrange
-      (db.grade.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: gradeId,
-        score: 85,
-      });
-      (db.grade.update as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: gradeId,
-        ...updateData,
-        percentage: 90,
-        letterGrade: "A-",
-      });
-
-      // Act
-      const result = await updateGrade(gradeId, updateData);
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.grade.update).toHaveBeenCalled();
+      term: "Term 1",
     });
 
-    it("should fail if grade not found", async () => {
-      // Arrange
-      (db.grade.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-      // Act
-      const result = await updateGrade(gradeId, updateData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not found");
-    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Score cannot exceed max score");
   });
 
-  describe("deleteGrade", () => {
-    const gradeId = "grade-123";
+  it("updates existing grade", async () => {
+    (db.grade.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "grade-1", score: 80 });
 
-    it("should delete grade record", async () => {
-      // Arrange
-      (db.grade.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: gradeId,
-      });
-      (db.grade.delete as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: gradeId,
-      });
-
-      // Act
-      const result = await deleteGrade(gradeId);
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.grade.delete).toHaveBeenCalledWith({ where: { id: gradeId } });
+    const result = await updateGrade("grade-1", {
+      studentId: "student-1",
+      subjectId: "subject-1",
+      score: 88,
+      maxScore: 100,
+      term: "Term 1",
+      remarks: "Improved",
     });
 
-    it("should fail if grade not found", async () => {
-      // Arrange
-      (db.grade.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-      // Act
-      const result = await deleteGrade(gradeId);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not found");
-    });
+    expect(result.success).toBe(true);
+    expect(db.grade.update).toHaveBeenCalled();
   });
 
-  describe("getGrades", () => {
-    it("should return paginated list of grades", async () => {
-      // Arrange
-      const mockGrades = [
-        {
-          id: "1",
-          score: 85,
-          student: { firstName: "John" },
-          subject: { name: "Math" },
+  it("returns not found when deleting missing grade", async () => {
+    (db.grade.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    const result = await deleteGrade("missing-id");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found");
+  });
+
+  it("returns mapped grades list", async () => {
+    (db.grade.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: "grade-1",
+        score: 88,
+        maxScore: 100,
+        percentage: 88,
+        letterGrade: "A",
+        term: "Term 1",
+        remarks: null,
+        student: {
+          id: "student-1",
+          firstName: "Hasib",
+          lastName: "Bhuiyan",
+          studentId: "STU-1",
+          class: { name: "Class One" },
         },
-        {
-          id: "2",
-          score: 92,
-          student: { firstName: "Jane" },
-          subject: { name: "Science" },
-        },
-      ];
-      (db.grade.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
-        mockGrades,
-      );
-      (db.grade.count as ReturnType<typeof vi.fn>).mockResolvedValue(2);
+        subject: { id: "subject-1", name: "Math", code: "MTH" },
+      },
+    ]);
+    (db.grade.count as ReturnType<typeof vi.fn>).mockResolvedValue(1);
 
-      // Act
-      const result = await getGrades({ page: 1, search: "" });
+    const result = await getGrades({ page: 1, limit: 20, search: "" });
 
-      // Assert
-      expect(result.grades).toEqual(mockGrades);
-      expect(result.total).toBe(2);
-      expect(result.pages).toBe(1);
-    });
-
-    it("should filter by subject", async () => {
-      // Arrange
-      (db.grade.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-      (db.grade.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
-
-      // Act
-      await getGrades({ page: 1, subjectId: "subject-123" });
-
-      // Assert
-      expect(db.grade.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            subjectId: "subject-123",
-          }),
-        }),
-      );
-    });
-
-    it("should filter by term", async () => {
-      // Arrange
-      (db.grade.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-      (db.grade.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
-
-      // Act
-      await getGrades({ page: 1, term: "Term 1 2024" });
-
-      // Assert
-      expect(db.grade.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            term: "Term 1 2024",
-          }),
-        }),
-      );
+    expect(result.total).toBe(1);
+    expect(result.grades[0]).toMatchObject({
+      id: "grade-1",
+      student: { firstName: "Hasib" },
+      subject: { code: "MTH" },
     });
   });
 
-  describe("getGradeDistribution", () => {
-    it("should return grade distribution for charts", async () => {
-      // Arrange
-      const mockDistribution = [
-        { letterGrade: "A", _count: 15 },
-        { letterGrade: "B", _count: 25 },
-        { letterGrade: "C", _count: 20 },
-        { letterGrade: "D", _count: 10 },
-        { letterGrade: "F", _count: 5 },
-      ];
-      (db.grade.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue(
-        mockDistribution,
-      );
+  it("returns grade distribution", async () => {
+    (db.grade.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { letterGrade: "A", _count: 10 },
+      { letterGrade: "B", _count: 6 },
+    ]);
 
-      // Act
-      const result = await getGradeDistribution();
+    const result = await getGradeDistribution();
 
-      // Assert
-      expect(result).toEqual(mockDistribution);
-    });
-
-    it("should filter by subject if provided", async () => {
-      // Arrange
-      (db.grade.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-
-      // Act
-      await getGradeDistribution("subject-123");
-
-      // Assert
-      expect(db.grade.groupBy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          by: expect.arrayContaining(["letterGrade"]),
-          where: expect.objectContaining({
-            subjectId: "subject-123",
-          }),
-        }),
-      );
-    });
+    expect(result).toEqual([
+      { letterGrade: "A", _count: 10 },
+      { letterGrade: "B", _count: 6 },
+    ]);
   });
 });

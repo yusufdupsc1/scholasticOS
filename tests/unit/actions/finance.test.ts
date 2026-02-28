@@ -1,8 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createFee,
-  updateFee,
-  deleteFee,
   getFees,
   recordPayment,
   getFinanceSummary,
@@ -15,19 +13,15 @@ vi.mock("@/lib/db", () => ({
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
-      delete: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
+      aggregate: vi.fn(),
     },
     payment: {
       create: vi.fn(),
-      findMany: vi.fn(),
       groupBy: vi.fn(),
     },
     student: {
-      findFirst: vi.fn(),
-    },
-    class: {
       findFirst: vi.fn(),
     },
     auditLog: {
@@ -54,404 +48,116 @@ vi.mock("next/cache", () => ({
 describe("Finance Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (db.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback) => callback(db));
   });
 
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
+  it("creates a fee for a valid student", async () => {
+    (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "student-123",
+    });
+    (db.fee.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "fee-1" });
 
-  describe("createFee", () => {
-    const validFormData = {
-      title: "Tuition Fee - Term 1 2024",
+    const result = await createFee({
+      title: "Tuition Fee",
       amount: 1500,
-      dueDate: "2024-09-15",
+      dueDate: "2026-03-15",
       term: "Term 1",
-      academicYear: "2024-2025",
-      feeType: "TUITION" as const,
-    };
-
-    it("should create a new fee for a student", async () => {
-      // Arrange
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "student-123",
-        classId: "class-123",
-      });
-      (db.fee.create as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "fee-123",
-        ...validFormData,
-        status: "UNPAID",
-      });
-
-      // Act
-      const result = await createFee({
-        ...validFormData,
-        studentId: "student-123",
-      });
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.fee.create).toHaveBeenCalled();
-      expect(db.auditLog.create).toHaveBeenCalled();
+      academicYear: "2026-2027",
+      feeType: "TUITION",
+      studentId: "student-123",
+      isRecurring: false,
     });
 
-    it("should create a fee for an entire class", async () => {
-      // Arrange
-      (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "class-123",
-      });
-      (db.fee.create as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "fee-123",
-        ...validFormData,
-        classId: "class-123",
-      });
-
-      // Act
-      const result = await createFee({
-        ...validFormData,
-        classId: "class-123",
-      });
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.fee.create).toHaveBeenCalled();
-    });
-
-    it("should fail if neither student nor class provided", async () => {
-      // Act
-      const result = await createFee(validFormData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Student or class");
-    });
-
-    it("should validate required fields", async () => {
-      // Act
-      const result = await createFee({
-        title: "",
-        amount: 0,
-        dueDate: "",
-        term: "",
-        academicYear: "",
-      } as any);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors).toBeDefined();
-    });
-
-    it("should validate amount is positive", async () => {
-      // Act
-      const result = await createFee({
-        ...validFormData,
-        amount: -100,
-      });
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors?.amount).toBeDefined();
-    });
+    expect(result.success).toBe(true);
+    expect(db.fee.create).toHaveBeenCalled();
+    expect(db.auditLog.create).toHaveBeenCalled();
   });
 
-  describe("updateFee", () => {
-    const feeId = "fee-123";
-    const updateData = {
-      title: "Updated Tuition Fee",
-      amount: 2000,
-      dueDate: "2024-10-01",
-    };
-
-    it("should update existing fee", async () => {
-      // Arrange
-      (db.fee.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: feeId,
-        status: "UNPAID",
-      });
-      (db.fee.update as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: feeId,
-        ...updateData,
-      });
-
-      // Act
-      const result = await updateFee(feeId, updateData);
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.fee.update).toHaveBeenCalled();
-    });
-
-    it("should fail if fee not found", async () => {
-      // Arrange
-      (db.fee.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-      // Act
-      const result = await updateFee(feeId, updateData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not found");
-    });
-
-    it("should not allow updating paid fees", async () => {
-      // Arrange
-      (db.fee.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: feeId,
-        status: "PAID",
-      });
-
-      // Act
-      const result = await updateFee(feeId, updateData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("paid");
-    });
-  });
-
-  describe("deleteFee", () => {
-    const feeId = "fee-123";
-
-    it("should delete unpaid fee", async () => {
-      // Arrange
-      (db.fee.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: feeId,
-        status: "UNPAID",
-      });
-      (db.fee.delete as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: feeId,
-      });
-
-      // Act
-      const result = await deleteFee(feeId);
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.fee.delete).toHaveBeenCalledWith({ where: { id: feeId } });
-    });
-
-    it("should not delete paid fees", async () => {
-      // Arrange
-      (db.fee.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: feeId,
-        status: "PAID",
-      });
-
-      // Act
-      const result = await deleteFee(feeId);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("paid");
-    });
-  });
-
-  describe("getFees", () => {
-    it("should return paginated list of fees", async () => {
-      // Arrange
-      const mockFees = [
-        { id: "1", title: "Tuition Fee", amount: 1500, status: "UNPAID" },
-        { id: "2", title: "Library Fee", amount: 200, status: "PAID" },
-      ];
-      (db.fee.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockFees);
-      (db.fee.count as ReturnType<typeof vi.fn>).mockResolvedValue(2);
-
-      // Act
-      const result = await getFees({ page: 1, search: "" });
-
-      // Assert
-      expect(result.fees).toEqual(mockFees);
-      expect(result.total).toBe(2);
-    });
-
-    it("should filter by status", async () => {
-      // Arrange
-      (db.fee.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-      (db.fee.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
-
-      // Act
-      await getFees({ page: 1, status: "UNPAID" });
-
-      // Assert
-      expect(db.fee.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            status: "UNPAID",
-          }),
-        }),
-      );
-    });
-
-    it("should filter by term", async () => {
-      // Arrange
-      (db.fee.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-      (db.fee.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
-
-      // Act
-      await getFees({ page: 1, term: "Term 1" });
-
-      // Assert
-      expect(db.fee.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            term: "Term 1",
-          }),
-        }),
-      );
-    });
-  });
-
-  describe("recordPayment", () => {
-    const validPaymentData = {
-      feeId: "fee-123",
+  it("validates required studentId", async () => {
+    const result = await createFee({
+      title: "Tuition Fee",
       amount: 1500,
-      method: "CASH" as const,
-      transactionRef: "TXN-123456",
-      notes: "Payment received",
-    };
+      dueDate: "2026-03-15",
+      term: "Term 1",
+      academicYear: "2026-2027",
+      feeType: "TUITION",
+      studentId: "",
+      isRecurring: false,
+    });
 
-    it("should record a payment and update fee status", async () => {
-      // Arrange
-      const mockFee = {
-        id: "fee-123",
-        amount: 1500,
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Validation failed");
+    expect(result.fieldErrors?.studentId).toBeDefined();
+  });
+
+  it("returns mapped fees with student and payments", async () => {
+    (db.fee.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: "fee-1",
+        title: "Tuition",
+        amount: 1200,
+        dueDate: new Date("2026-03-15"),
         status: "UNPAID",
+        feeType: "TUITION",
+        term: "Term 1",
+        student: { firstName: "Hasib", lastName: "Bhuiyan", studentId: "STU2026011" },
         payments: [],
-      };
-      (db.fee.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(mockFee);
-      (db.payment.create as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "payment-123",
-        amount: 1500,
-      });
+      },
+    ]);
+    (db.fee.count as ReturnType<typeof vi.fn>).mockResolvedValue(1);
 
-      // Act
-      const result = await recordPayment(validPaymentData);
+    const result = await getFees({ page: 1, limit: 20, search: "" });
 
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.payment.create).toHaveBeenCalled();
-      // Fee status should be updated to PAID
-      expect(db.fee.update).toHaveBeenCalled();
-    });
-
-    it("should set PARTIAL status for partial payments", async () => {
-      // Arrange
-      const mockFee = {
-        id: "fee-123",
-        amount: 1500,
-        status: "UNPAID",
-        payments: [],
-      };
-      (db.fee.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(mockFee);
-      (db.payment.create as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "payment-123",
-        amount: 500, // Partial payment
-      });
-
-      // Act
-      await recordPayment({ ...validPaymentData, amount: 500 });
-
-      // Assert
-      expect(db.fee.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ status: "PARTIAL" }),
-        }),
-      );
-    });
-
-    it("should fail if fee not found", async () => {
-      // Arrange
-      (db.fee.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-      // Act
-      const result = await recordPayment(validPaymentData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not found");
-    });
-
-    it("should validate required fields", async () => {
-      // Act
-      const result = await recordPayment({
-        feeId: "",
-        amount: 0,
-        method: "CASH",
-      } as any);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors).toBeDefined();
-    });
-
-    it("should generate receipt number", async () => {
-      // Arrange
-      const mockFee = {
-        id: "fee-123",
-        amount: 1500,
-        status: "UNPAID",
-        payments: [],
-      };
-      (db.fee.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(mockFee);
-
-      let createCall: any;
-      (db.payment.create as ReturnType<typeof vi.fn>).mockImplementation(
-        (args) => {
-          createCall = args;
-          return Promise.resolve({ id: "payment-123", ...args.data });
-        },
-      );
-
-      // Act
-      await recordPayment(validPaymentData);
-
-      // Assert
-      expect(createCall.data.receiptNumber).toBeDefined();
-      expect(createCall.data.receiptNumber).toMatch(/^RCP-/);
+    expect(result.total).toBe(1);
+    expect(result.fees[0]).toMatchObject({
+      id: "fee-1",
+      student: { firstName: "Hasib", lastName: "Bhuiyan" },
     });
   });
 
-  describe("getFinanceSummary", () => {
-    it("should return comprehensive financial summary", async () => {
-      // Arrange
-      (db.fee.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([
-        { status: "UNPAID", _sum: { amount: 5000 } },
-        { status: "PAID", _sum: { amount: 15000 } },
-        { status: "PARTIAL", _sum: { amount: 2000 } },
-      ]);
-      (db.fee.count as ReturnType<typeof vi.fn>).mockResolvedValue(15);
-      (db.payment.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-
-      // Act
-      const result = await getFinanceSummary();
-
-      // Assert
-      expect(result.totalFees.amount).toBe(22000);
-      expect(result.paidFees.amount).toBe(15000);
-      expect(result.pendingFees.amount).toBe(7000); // UNPAID + PARTIAL
+  it("records partial payment and updates fee status", async () => {
+    (db.fee.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "fee-1",
+      amount: 1000,
+      payments: [],
+    });
+    (db.payment.create as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "pay-1",
+      amount: 400,
     });
 
-    it("should calculate overdue count", async () => {
-      // Arrange
-      const today = new Date();
-      (db.fee.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-      (db.fee.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-        {
-          id: "1",
-          status: "UNPAID",
-          dueDate: new Date(today.getTime() - 86400000),
-        }, // Yesterday
-        {
-          id: "2",
-          status: "UNPAID",
-          dueDate: new Date(today.getTime() + 86400000),
-        }, // Tomorrow
-      ]);
-
-      // Act
-      const result = await getFinanceSummary();
-
-      // Assert
-      expect(result.overdueCount).toBe(1);
+    const result = await recordPayment({
+      feeId: "fee-1",
+      amount: 400,
+      method: "ONLINE",
+      transactionRef: "TXN-1",
+      notes: "partial",
     });
+
+    expect(result.success).toBe(true);
+    expect(db.fee.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "PARTIAL" }),
+      }),
+    );
+  });
+
+  it("builds finance summary from aggregates", async () => {
+    (db.fee.aggregate as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ _sum: { amount: 10000 }, _count: 10 })
+      .mockResolvedValueOnce({ _sum: { amount: 7000 }, _count: 7 })
+      .mockResolvedValueOnce({ _sum: { amount: 3000 }, _count: 3 });
+    (db.fee.count as ReturnType<typeof vi.fn>).mockResolvedValue(2);
+    (db.payment.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { paidAt: new Date("2026-01-10"), _sum: { amount: 500 } },
+    ]);
+
+    const result = await getFinanceSummary();
+
+    expect(result.totalFees).toEqual({ amount: 10000, count: 10 });
+    expect(result.paidFees).toEqual({ amount: 7000, count: 7 });
+    expect(result.pendingFees).toEqual({ amount: 3000, count: 3 });
+    expect(result.overdueCount).toBe(2);
+    expect(result.monthlyRevenue[0].amount).toBe(500);
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createClass,
   updateClass,
@@ -50,10 +50,7 @@ vi.mock("next/cache", () => ({
 describe("Classes Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.resetAllMocks();
+    (db.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback) => callback(db));
   });
 
   describe("createClass", () => {
@@ -67,8 +64,8 @@ describe("Classes Server Actions", () => {
     };
 
     it("should create a new class", async () => {
-      (db.class.findFirst as Return      // Arrange
-Type<typeof vi.fn>).mockResolvedValue(null);
+      // Arrange
+      (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       (db.class.create as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: "class-123",
         ...validFormData,
@@ -132,6 +129,7 @@ Type<typeof vi.fn>).mockResolvedValue(null);
       grade: "9",
       section: "B",
       capacity: 25,
+      academicYear: "2024-2025",
     };
 
     it("should update existing class", async () => {
@@ -202,8 +200,26 @@ Type<typeof vi.fn>).mockResolvedValue(null);
     it("should return paginated list of classes", async () => {
       // Arrange
       const mockClasses = [
-        { id: "1", name: "Grade 9A", grade: "9" },
-        { id: "2", name: "Grade 9B", grade: "9" },
+        {
+          id: "1",
+          name: "Grade 9A",
+          grade: "9",
+          section: "A",
+          capacity: 30,
+          academicYear: "2024-2025",
+          _count: { students: 20 },
+          classTeacher: null,
+        },
+        {
+          id: "2",
+          name: "Grade 9B",
+          grade: "9",
+          section: "B",
+          capacity: 30,
+          academicYear: "2024-2025",
+          _count: { students: 18 },
+          classTeacher: null,
+        },
       ];
       (db.class.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockClasses);
       (db.class.count as ReturnType<typeof vi.fn>).mockResolvedValue(2);
@@ -212,7 +228,12 @@ Type<typeof vi.fn>).mockResolvedValue(null);
       const result = await getClasses({ page: 1, search: "" });
 
       // Assert
-      expect(result.classes).toEqual(mockClasses);
+      expect(result.classes).toHaveLength(2);
+      expect(result.classes[0]).toMatchObject({
+        id: "1",
+        name: "Grade 9A",
+        _count: { students: 20 },
+      });
       expect(result.total).toBe(2);
     });
 
@@ -291,8 +312,22 @@ Type<typeof vi.fn>).mockResolvedValue(null);
     it("should return list of active subjects", async () => {
       // Arrange
       const mockSubjects = [
-        { id: "1", name: "Mathematics", code: "MATH" },
-        { id: "2", name: "English", code: "ENG" },
+        {
+          id: "1",
+          name: "Mathematics",
+          code: "MATH",
+          credits: 4,
+          isCore: true,
+          _count: { teachers: 2, grades: 10 },
+        },
+        {
+          id: "2",
+          name: "English",
+          code: "ENG",
+          credits: 3,
+          isCore: true,
+          _count: { teachers: 1, grades: 8 },
+        },
       ];
       (db.subject.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockSubjects);
 
@@ -300,7 +335,12 @@ Type<typeof vi.fn>).mockResolvedValue(null);
       const result = await getSubjects();
 
       // Assert
-      expect(result).toEqual(mockSubjects);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({
+        id: "1",
+        name: "Mathematics",
+        _count: { teachers: 2, grades: 10 },
+      });
     });
 
     it("should filter subjects by search query", async () => {

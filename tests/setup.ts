@@ -127,14 +127,6 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-// Mock email service
-vi.mock("@/lib/email", () => ({
-  sendEmail: vi.fn().mockResolvedValue({ success: true, id: "test-email-id" }),
-  passwordResetEmail: vi.fn().mockReturnValue("<html>Reset Email</html>"),
-  welcomeEmail: vi.fn().mockReturnValue("<html>Welcome Email</html>"),
-  newStudentEmail: vi.fn().mockReturnValue("<html>New Student Email</html>"),
-}));
-
 // Mock environment variables
 vi.mock("@/lib/env", () => ({
   env: {
@@ -151,21 +143,6 @@ vi.mock("@/lib/env", () => ({
     RESEND_API_KEY: "test-resend-key",
     EMAIL_FROM: "test@example.com",
   },
-}));
-
-// Mock rate limiter
-vi.mock("@/lib/rate-limit", () => ({
-  rateLimiter: {
-    check: vi.fn().mockReturnValue(true),
-    getRemaining: vi.fn().mockReturnValue(99),
-  },
-  checkRateLimit: vi
-    .fn()
-    .mockReturnValue({
-      success: true,
-      remaining: 99,
-      resetAt: Date.now() + 60000,
-    }),
 }));
 
 // Mock revalidatePath

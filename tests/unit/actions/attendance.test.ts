@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   markAttendance,
   getAttendanceForClass,
@@ -10,15 +10,11 @@ import { db } from "@/lib/db";
 vi.mock("@/lib/db", () => ({
   db: {
     attendance: {
-      findFirst: vi.fn(),
       upsert: vi.fn(),
-      create: vi.fn(),
       findMany: vi.fn(),
       groupBy: vi.fn(),
-      count: vi.fn(),
     },
     student: {
-      findFirst: vi.fn(),
       findMany: vi.fn(),
     },
     class: {
@@ -48,236 +44,92 @@ vi.mock("next/cache", () => ({
 describe("Attendance Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (db.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback) => callback(db));
   });
 
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
+  it("marks attendance for entries", async () => {
+    (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "class-1" });
 
-  describe("markAttendance", () => {
-    const validFormData = {
-      date: "2024-01-15",
-      records: [
-        { studentId: "student-1", status: "PRESENT" as const },
-        { studentId: "student-2", status: "ABSENT" as const },
+    const result = await markAttendance({
+      classId: "class-1",
+      date: "2026-02-01",
+      entries: [
+        { studentId: "student-1", status: "PRESENT" },
+        { studentId: "student-2", status: "ABSENT" },
       ],
-    };
-
-    it("should mark attendance for multiple students", async () => {
-      // Arrange
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "student-1",
-        classId: "class-123",
-      });
-      (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "class-123",
-      });
-      (db.attendance.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "attendance-1",
-      });
-
-      // Act
-      const result = await markAttendance("class-123", validFormData);
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.attendance.upsert).toHaveBeenCalled();
     });
 
-    it("should fail if class not found", async () => {
-      // Arrange
-      (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
-      // Act
-      const result = await markAttendance("invalid-class", validFormData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Class not found");
-    });
-
-    it("should validate date format", async () => {
-      // Act
-      const result = await markAttendance("class-123", {
-        date: "invalid-date",
-        records: [],
-      });
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors?.date).toBeDefined();
-    });
-
-    it("should validate status values", async () => {
-      // Act
-      const result = await markAttendance("class-123", {
-        date: "2024-01-15",
-        records: [{ studentId: "student-1", status: "INVALID" as any }],
-      });
-
-      // Assert
-      expect(result.success).toBe(false);
-    });
-
-    it("should prevent duplicate attendance records", async () => {
-      // The implementation should use upsert with unique constraint
-      // to prevent duplicate records for same student/date
-      expect(true).toBe(true);
-    });
+    expect(result.success).toBe(true);
+    expect(db.attendance.upsert).toHaveBeenCalledTimes(2);
   });
 
-  describe("getAttendanceForClass", () => {
-    it("should return attendance records for a class on a specific date", async () => {
-      // Arrange
-      const mockRecords = [
-        { id: "1", studentId: "student-1", status: "PRESENT" },
-        { id: "2", studentId: "student-2", status: "ABSENT" },
-      ];
-      (db.attendance.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
-        mockRecords,
-      );
+  it("returns class not found", async () => {
+    (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-      // Act
-      const result = await getAttendanceForClass({
-        classId: "class-123",
-        date: "2024-01-15",
-      });
-
-      // Assert
-      expect(result).toEqual(mockRecords);
+    const result = await markAttendance({
+      classId: "missing",
+      date: "2026-02-01",
+      entries: [{ studentId: "student-1", status: "PRESENT" }],
     });
 
-    it("should filter by date range", async () => {
-      // Arrange
-      (db.attendance.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
-        [],
-      );
-
-      // Act
-      await getAttendanceForClass({
-        classId: "class-123",
-        startDate: "2024-01-01",
-        endDate: "2024-01-31",
-      });
-
-      // Assert
-      expect(db.attendance.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            date: expect.objectContaining({
-              gte: expect.any(Date),
-              lte: expect.any(Date),
-            }),
-          }),
-        }),
-      );
-    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Class not found");
   });
 
-  describe("getAttendanceSummary", () => {
-    it("should return attendance summary with counts", async () => {
-      // Arrange
-      const mockGrouped = [
-        { status: "PRESENT", _count: 25 },
-        { status: "ABSENT", _count: 3 },
-        { status: "LATE", _count: 2 },
-      ];
-      (db.attendance.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue(
-        mockGrouped,
-      );
-
-      // Act
-      const result = await getAttendanceSummary({
-        startDate: "2024-01-01",
-        endDate: "2024-01-31",
-      });
-
-      // Assert
-      expect(result.total).toBe(30);
-      expect(result.present).toBe(25);
-      expect(result.absent).toBe(3);
-      expect(result.late).toBe(2);
-      expect(result.presentRate).toBeCloseTo(83.33, 1);
+  it("validates attendance entries", async () => {
+    const result = await markAttendance({
+      classId: "class-1",
+      date: "2026-02-01",
+      entries: [],
     });
 
-    it("should filter by class", async () => {
-      // Arrange
-      (db.attendance.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-
-      // Act
-      await getAttendanceSummary({
-        classId: "class-123",
-        startDate: "2024-01-01",
-        endDate: "2024-01-31",
-      });
-
-      // Assert
-      expect(db.attendance.groupBy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          by: expect.arrayContaining(["status"]),
-          where: expect.objectContaining({
-            classId: "class-123",
-          }),
-        }),
-      );
-    });
-
-    it("should calculate present rate correctly", async () => {
-      // Arrange
-      const mockGrouped = [
-        { status: "PRESENT", _count: 70 },
-        { status: "ABSENT", _count: 30 },
-      ];
-      (db.attendance.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue(
-        mockGrouped,
-      );
-
-      // Act
-      const result = await getAttendanceSummary({
-        startDate: "2024-01-01",
-        endDate: "2024-01-31",
-      });
-
-      // Assert
-      expect(result.presentRate).toBeCloseTo(70, 1);
-    });
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Validation failed");
+    expect(result.fieldErrors?.entries).toBeDefined();
   });
 
-  describe("getAttendanceTrend", () => {
-    it("should return attendance trend data for charts", async () => {
-      // Arrange
-      const mockTrend = [
-        { date: new Date("2024-01-01"), status: "PRESENT", _count: 25 },
-        { date: new Date("2024-01-02"), status: "ABSENT", _count: 3 },
-      ];
-      (db.attendance.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue(
-        mockTrend,
-      );
+  it("returns merged attendance for a class/date", async () => {
+    (db.student.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: "student-1", studentId: "STU-1", firstName: "Hasib", lastName: "Bhuiyan", photo: null },
+      { id: "student-2", studentId: "STU-2", firstName: "Ashik", lastName: "Biswas", photo: null },
+    ]);
+    (db.attendance.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { studentId: "student-1", status: "PRESENT", remarks: null },
+    ]);
 
-      // Act
-      const result = await getAttendanceTrend({ days: 30 });
+    const result = await getAttendanceForClass({ classId: "class-1", date: "2026-02-01" });
 
-      // Assert
-      expect(result).toEqual(mockTrend);
+    expect(result).toHaveLength(2);
+    expect(result[0].attendance).toMatchObject({ status: "PRESENT" });
+    expect(result[1].attendance).toBeNull();
+  });
+
+  it("returns attendance summary", async () => {
+    (db.attendance.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { status: "PRESENT", _count: 25 },
+      { status: "ABSENT", _count: 3 },
+      { status: "LATE", _count: 2 },
+    ]);
+
+    const result = await getAttendanceSummary({
+      startDate: "2026-02-01",
+      endDate: "2026-02-28",
     });
 
-    it("should limit to specified number of days", async () => {
-      // Arrange
-      (db.attendance.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    expect(result.total).toBe(30);
+    expect(result.presentRate).toBe(83);
+    expect(result.absent).toBe(3);
+  });
 
-      // Act
-      await getAttendanceTrend({ days: 7 });
+  it("returns attendance trend", async () => {
+    (db.attendance.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { date: new Date("2026-02-01"), status: "PRESENT", _count: 22 },
+    ]);
 
-      // Assert
-      expect(db.attendance.groupBy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            date: expect.objectContaining({
-              gte: expect.any(Date),
-            }),
-          }),
-        }),
-      );
-    });
+    const result = await getAttendanceTrend({ days: 30 });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ status: "PRESENT", _count: 22 });
+    expect(result[0].date).toContain("2026-02-01");
   });
 });

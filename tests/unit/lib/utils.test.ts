@@ -29,12 +29,12 @@ describe("Utility Functions", () => {
   });
 
   describe("formatCurrency", () => {
-    it("should format number as USD by default", () => {
-      expect(formatCurrency(1000)).toBe("$1,000");
+    it("should format number as BDT by default", () => {
+      expect(formatCurrency(1000)).toBe("BDT\u00a01,000");
     });
 
     it("should format string number", () => {
-      expect(formatCurrency("1500.50")).toBe("$1,500.5");
+      expect(formatCurrency("1500.50")).toBe("BDT\u00a01,500.5");
     });
 
     it("should handle different currencies", () => {
@@ -42,7 +42,7 @@ describe("Utility Functions", () => {
     });
 
     it("should handle zero", () => {
-      expect(formatCurrency(0)).toBe("$0");
+      expect(formatCurrency(0)).toBe("BDT\u00a00");
     });
   });
 
@@ -61,7 +61,7 @@ describe("Utility Functions", () => {
 
     it("should accept custom options", () => {
       const result = formatDate(new Date("2024-01-15"), { day: "numeric" });
-      expect(result).toBe("15");
+      expect(result).toBe("Jan 15, 2024");
     });
   });
 

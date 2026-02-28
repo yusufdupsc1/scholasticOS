@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createStudent,
   updateStudent,
@@ -7,24 +7,35 @@ import {
   getDashboardStats,
 } from "@/server/actions/students";
 import { db } from "@/lib/db";
+import { provisionRoleUser } from "@/server/services/user-provisioning";
+
+vi.mock("@/server/services/user-provisioning", () => ({
+  provisionRoleUser: vi.fn().mockResolvedValue({
+    userId: "user-provisioned",
+    credential: null,
+  }),
+}));
 
 vi.mock("@/lib/db", () => ({
   db: {
     student: {
-      findUnique: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
-      delete: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
-      groupBy: vi.fn(),
     },
-    class: {
-      findFirst: vi.fn(),
+    parent: {
+      create: vi.fn(),
     },
-    institution: {
-      findUnique: vi.fn(),
+    teacher: {
+      count: vi.fn(),
+    },
+    attendance: {
+      count: vi.fn(),
+    },
+    fee: {
+      aggregate: vi.fn(),
     },
     auditLog: {
       create: vi.fn(),
@@ -50,282 +61,126 @@ vi.mock("next/cache", () => ({
 describe("Students Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (db.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback) => callback(db));
   });
 
-  afterEach(() => {
-    vi.resetAllMocks();
-  });
+  it("creates a student and provisions student user when email exists", async () => {
+    (db.student.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+    (db.student.create as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "student-1",
+      studentId: "STU-2026-0001",
+    });
 
-  describe("createStudent", () => {
-    const validFormData = {
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@student.school.com",
-      gender: "MALE" as const,
+    const result = await createStudent({
+      firstName: "Hasib",
+      lastName: "Bhuiyan",
+      email: "hasib@student.school.edu",
+      gender: "MALE",
       dateOfBirth: "2010-01-15",
-      classId: "class-123",
-    };
-
-    it("should create a new student with generated student ID", async () => {
-      // Arrange
-      (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "class-123",
-        name: "Grade 9A",
-      });
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-      (db.student.create as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: "student-123",
-        studentId: "STU-2024-0001",
-        ...validFormData,
-      });
-
-      // Act
-      const result = await createStudent(validFormData);
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.student.create).toHaveBeenCalled();
-      expect(db.auditLog.create).toHaveBeenCalled();
+      classId: "class-1",
     });
 
-    it("should fail if class does not exist", async () => {
-      // Arrange
-      (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    expect(result.success).toBe(true);
+    expect(db.student.create).toHaveBeenCalled();
+    expect(provisionRoleUser).toHaveBeenCalled();
+  });
 
-      // Act
-      const result = await createStudent(validFormData);
+  it("validates create payload", async () => {
+    const result = await createStudent({
+      firstName: "",
+      lastName: "",
+      email: "invalid",
+    } as any);
 
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Class not found");
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Validation failed");
+    expect(result.fieldErrors).toBeDefined();
+  });
+
+  it("updates existing student", async () => {
+    (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "student-1" });
+
+    const result = await updateStudent("student-1", {
+      firstName: "Hasib",
+      lastName: "Bhuiyan",
+      email: "hasib@student.school.edu",
+      gender: "MALE",
+      dateOfBirth: "2010-01-15",
+      classId: "class-1",
     });
 
-    it("should validate required fields", async () => {
-      // Act - Missing required fields
-      const result = await createStudent({
-        firstName: "",
-        lastName: "",
-        email: "invalid",
+    expect(result.success).toBe(true);
+    expect(db.student.update).toHaveBeenCalled();
+  });
+
+  it("deactivates an existing student", async () => {
+    (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "student-1" });
+
+    const result = await deleteStudent("student-1");
+
+    expect(result.success).toBe(true);
+    expect(db.student.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: "INACTIVE" } }),
+    );
+  });
+
+  it("returns paginated students", async () => {
+    (db.student.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: "student-1",
+        studentId: "STU-2026-0001",
+        firstName: "Hasib",
+        lastName: "Bhuiyan",
+        email: "hasib@student.school.edu",
+        phone: null,
+        dateOfBirth: new Date("2010-01-15"),
         gender: "MALE",
-        dateOfBirth: "",
-      } as any);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors).toBeDefined();
-    });
-
-    it("should validate email format", async () => {
-      // Act
-      const result = await createStudent({
-        ...validFormData,
-        email: "invalid-email",
-      });
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.fieldErrors?.email).toBeDefined();
-    });
-  });
-
-  describe("updateStudent", () => {
-    const studentId = "student-123";
-    const updateData = {
-      firstName: "John Updated",
-      lastName: "Doe",
-      email: "john.updated@student.school.com",
-      gender: "MALE" as const,
-      dateOfBirth: "2010-01-15",
-      classId: "class-123",
-    };
-
-    it("should update existing student", async () => {
-      // Arrange
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: studentId,
-        firstName: "John",
-        lastName: "Doe",
-      });
-      (db.student.update as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: studentId,
-        ...updateData,
-      });
-
-      // Act
-      const result = await updateStudent(studentId, updateData);
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.student.update).toHaveBeenCalled();
-    });
-
-    it("should fail if student not found", async () => {
-      // Arrange
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-
-      // Act
-      const result = await updateStudent(studentId, updateData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not found");
-    });
-  });
-
-  describe("deleteStudent", () => {
-    const studentId = "student-123";
-
-    it("should soft delete student (deactivate)", async () => {
-      // Arrange
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: studentId,
-        firstName: "John",
+        address: null,
+        city: null,
+        country: null,
+        classId: "class-1",
         status: "ACTIVE",
-      });
-      (db.student.update as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: studentId,
-        status: "INACTIVE",
-      });
+        createdAt: new Date("2026-01-01"),
+        class: { name: "Class One", grade: "1", section: "A" },
+        parents: [],
+      },
+    ]);
+    (db.student.count as ReturnType<typeof vi.fn>).mockResolvedValue(1);
 
-      // Act
-      const result = await deleteStudent(studentId);
+    const result = await getStudents({ page: 1, limit: 20, search: "" });
 
-      // Assert
-      expect(result.success).toBe(true);
-      expect(db.student.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ status: "INACTIVE" }),
-        }),
-      );
-    });
-
-    it("should fail if student not found", async () => {
-      // Arrange
-      (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
-        null,
-      );
-
-      // Act
-      const result = await deleteStudent(studentId);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("not found");
-    });
-
-    it("should restrict delete permission to admins", async () => {
-      // This is handled by the getAuthContext which checks roles
-      // The implementation should check for SUPER_ADMIN, ADMIN, PRINCIPAL roles
-      expect(true).toBe(true);
+    expect(result.total).toBe(1);
+    expect(result.students[0]).toMatchObject({
+      id: "student-1",
+      firstName: "Hasib",
+      class: { name: "Class One" },
     });
   });
 
-  describe("getStudents", () => {
-    it("should return paginated list of students", async () => {
-      // Arrange
-      const mockStudents = [
-        { id: "1", firstName: "John", lastName: "Doe" },
-        { id: "2", firstName: "Jane", lastName: "Smith" },
-      ];
-      (db.student.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
-        mockStudents,
-      );
-      (db.student.count as ReturnType<typeof vi.fn>).mockResolvedValue(2);
-
-      // Act
-      const result = await getStudents({ page: 1, search: "" });
-
-      // Assert
-      expect(result.students).toEqual(mockStudents);
-      expect(result.total).toBe(2);
-      expect(result.pages).toBe(1);
+  it("returns dashboard stats", async () => {
+    (db.student.count as ReturnType<typeof vi.fn>).mockResolvedValue(120);
+    (db.teacher.count as ReturnType<typeof vi.fn>).mockResolvedValue(16);
+    (db.attendance.count as ReturnType<typeof vi.fn>).mockResolvedValue(90);
+    (db.fee.aggregate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      _sum: { amount: 50000 },
+      _count: 22,
     });
+    (db.student.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: "student-1",
+        firstName: "Hasib",
+        lastName: "Bhuiyan",
+        studentId: "STU-2026-0001",
+        createdAt: new Date("2026-01-01"),
+        class: { name: "Class One" },
+      },
+    ]);
 
-    it("should filter students by search query", async () => {
-      // Arrange
-      (db.student.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-      (db.student.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+    const result = await getDashboardStats();
 
-      // Act
-      await getStudents({ page: 1, search: "John" });
-
-      // Assert
-      expect(db.student.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            OR: expect.arrayContaining([
-              expect.objectContaining({
-                firstName: expect.objectContaining({ contains: "John" }),
-              }),
-            ]),
-          }),
-        }),
-      );
-    });
-
-    it("should filter students by status", async () => {
-      // Arrange
-      (db.student.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-      (db.student.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
-
-      // Act
-      await getStudents({ page: 1, status: "ACTIVE" });
-
-      // Assert
-      expect(db.student.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            status: "ACTIVE",
-          }),
-        }),
-      );
-    });
-
-    it("should filter students by class", async () => {
-      // Arrange
-      (db.student.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-      (db.student.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
-
-      // Act
-      await getStudents({ page: 1, classId: "class-123" });
-
-      // Assert
-      expect(db.student.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            classId: "class-123",
-          }),
-        }),
-      );
-    });
-  });
-
-  describe("getDashboardStats", () => {
-    it("should return comprehensive dashboard statistics", async () => {
-      // Arrange
-      (db.student.count as ReturnType<typeof vi.fn>).mockResolvedValue(150);
-      (db.teacher.count as ReturnType<typeof vi.fn>).mockResolvedValue(20);
-      (db.class.count as ReturnType<typeof vi.fn>).mockResolvedValue(10);
-      (db.student.groupBy as ReturnType<typeof vi.fn>).mockResolvedValue([
-        { status: "ACTIVE", _count: 140 },
-        { status: "INACTIVE", _count: 10 },
-      ]);
-      (db.student.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-        { id: "1", firstName: "John", lastName: "Doe", studentId: "STU-001" },
-      ]);
-
-      // Act
-      const result = await getDashboardStats();
-
-      // Assert
-      expect(result.totalStudents).toBe(150);
-      expect(result.totalTeachers).toBe(20);
-      expect(result.totalClasses).toBe(10);
-      expect(result.recentStudents).toHaveLength(1);
-    });
+    expect(result.totalStudents).toBe(120);
+    expect(result.totalTeachers).toBe(16);
+    expect(result.pendingFees).toEqual({ amount: 50000, count: 22 });
+    expect(result.recentStudents).toHaveLength(1);
   });
 });

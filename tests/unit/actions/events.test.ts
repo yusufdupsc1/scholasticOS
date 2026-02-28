@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createEvent,
   updateEvent,
@@ -15,6 +15,7 @@ vi.mock("@/lib/db", () => ({
       update: vi.fn(),
       delete: vi.fn(),
       findMany: vi.fn(),
+      count: vi.fn(),
     },
     auditLog: {
       create: vi.fn(),
@@ -40,10 +41,7 @@ vi.mock("next/cache", () => ({
 describe("Events Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.resetAllMocks();
+    (db.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback) => callback(db));
   });
 
   describe("createEvent", () => {
@@ -122,6 +120,7 @@ describe("Events Server Actions", () => {
       title: "Updated Sports Day",
       description: "Updated description",
       startDate: "2025-03-20T09:00:00",
+      type: "SPORTS" as const,
     };
 
     it("should update existing event", async () => {
@@ -201,7 +200,8 @@ describe("Events Server Actions", () => {
       const result = await getEvents({ page: 1, search: "" });
 
       // Assert
-      expect(result.events).toEqual(mockEvents);
+      expect(result.events).toHaveLength(2);
+      expect(result.events[0]).toMatchObject({ id: "1", title: "Sports Day" });
       expect(result.total).toBe(2);
     });
 

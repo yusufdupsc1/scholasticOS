@@ -7,6 +7,7 @@ vi.mock("@/lib/db", () => ({
     user: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     },
@@ -113,7 +114,7 @@ describe("Auth Integration Tests", () => {
       (db.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(mockUser);
 
       const user = await db.user.findUnique({
-        where: { email: "test@example.com },
+        where: { email: "test@example.com" },
         include: { institution: { select: { name: true, slug: true } } },
       });
 
