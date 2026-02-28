@@ -61,6 +61,7 @@ async function buildStudentContext(institutionId: string, studentId: string) {
         id: true,
         name: true,
         address: true,
+        logo: true,
         settings: {
           select: {
             signatoryName: true,
@@ -68,6 +69,7 @@ async function buildStudentContext(institutionId: string, studentId: string) {
             coSignatoryName: true,
             coSignatoryTitle: true,
             certificateFooter: true,
+            certificateLogoUrl: true,
           },
         },
       },
@@ -161,12 +163,16 @@ export async function generateStudentRecord(
   }
 
   const context = await buildStudentContext(input.institutionId, input.studentId);
-  const rendered = buildStudentRecordPdf({
+  const rendered = await buildStudentRecordPdf({
     template: input.recordType,
     periodType: input.periodType,
     periodLabel,
     institutionName: context.institution.name,
     institutionAddress: context.institution.address,
+    institutionLogoUrl:
+      context.institution.settings?.certificateLogoUrl ??
+      context.institution.logo ??
+      null,
     student: {
       id: context.student.id,
       studentId: context.student.studentId,
