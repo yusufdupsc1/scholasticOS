@@ -40,6 +40,7 @@ export function ReportsWorkspace({ classes }: ReportsWorkspaceProps) {
   const [loadingRecords, setLoadingRecords] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [previewRecordId, setPreviewRecordId] = useState<string | null>(null);
   const [groupedRecords, setGroupedRecords] = useState<Record<string, StudentRecordItem[]>>({});
 
   const selectedStudentName = useMemo(() => {
@@ -65,6 +66,7 @@ export function ReportsWorkspace({ classes }: ReportsWorkspaceProps) {
   useEffect(() => {
     if (!selectedStudent) {
       setGroupedRecords({});
+      setPreviewRecordId(null);
       return;
     }
     void loadRecords(selectedStudent.id);
@@ -99,9 +101,13 @@ export function ReportsWorkspace({ classes }: ReportsWorkspaceProps) {
       if (!res.ok || json?.error) {
         throw new Error(json?.error?.message ?? "Failed");
       }
+      const generated = json?.data as StudentRecordItem | undefined;
 
       toast.success(opts?.regenerate ? "Record regenerated" : "PDF generated");
       await loadRecords(selectedStudent.id);
+      if (generated?.id) {
+        setPreviewRecordId(generated.id);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to generate PDF");
     } finally {
@@ -135,6 +141,8 @@ export function ReportsWorkspace({ classes }: ReportsWorkspaceProps) {
         selectedStudentName={selectedStudentName}
         grouped={groupedRecords}
         regeneratingId={regeneratingId}
+        previewRecordId={previewRecordId}
+        onPreviewRecordHandled={() => setPreviewRecordId(null)}
         onRegenerate={(record) => {
           setRegeneratingId(record.id);
           void generateRecord({
