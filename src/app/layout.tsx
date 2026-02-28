@@ -36,6 +36,11 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "scholaOps" }],
   creator: "scholaOps",
+  icons: {
+    icon: [{ url: "/favicon.ico", type: "image/x-icon" }],
+    shortcut: ["/favicon.ico"],
+    apple: [{ url: "/favicon.ico" }],
+  },
   openGraph: {
     type: "website",
     locale: "en_BD",
