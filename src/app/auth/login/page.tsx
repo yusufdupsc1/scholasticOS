@@ -21,6 +21,9 @@ export default async function LoginPage({
   }
 
   const params = await searchParams;
+  const googleEnabled = Boolean(
+    process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET,
+  );
 
   return (
     <main className="min-h-screen bg-background flex">
@@ -102,6 +105,7 @@ export default async function LoginPage({
           <LoginForm
             callbackUrl={params.callbackUrl}
             error={params.error}
+            googleEnabled={googleEnabled}
           />
 
           <p className="mt-4 text-center text-sm text-muted-foreground">

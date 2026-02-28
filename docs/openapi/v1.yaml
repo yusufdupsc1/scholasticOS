@@ -11,6 +11,11 @@ paths:
       summary: List students
     post:
       summary: Create student
+  /students/{id}:
+    put:
+      summary: Update student
+    delete:
+      summary: Deactivate student
   /students/reports/generate:
     post:
       summary: Generate ready-made student record PDF

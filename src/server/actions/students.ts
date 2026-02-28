@@ -325,6 +325,13 @@ export async function getStudents({
       firstName: student.firstName,
       lastName: student.lastName,
       email: student.email,
+      phone: student.phone,
+      dateOfBirth: toIsoDate(student.dateOfBirth),
+      gender: student.gender,
+      address: student.address,
+      city: student.city,
+      country: student.country,
+      classId: student.classId,
       status: student.status,
       createdAt: toIsoDate(student.createdAt),
       class: student.class

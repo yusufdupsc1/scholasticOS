@@ -92,6 +92,92 @@ async function provisionDemoUserIfNeeded(email: string, password: string) {
   return user;
 }
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+async function uniqueInstitutionSlug(base: string) {
+  let slug = slugify(base) || "institution";
+  let i = 1;
+  while (await db.institution.findUnique({ where: { slug } })) {
+    slug = `${slugify(base) || "institution"}-${i++}`;
+  }
+  return slug;
+}
+
+async function upsertGoogleUserContext(user: {
+  email: string;
+  name?: string | null;
+  image?: string | null;
+}) {
+  const normalizedEmail = user.email.trim().toLowerCase();
+  const localPart = normalizedEmail.split("@")[0] || "school-admin";
+  const domain = normalizedEmail.split("@")[1] || "school.edu";
+  const inferredInstitutionName = `${domain.split(".")[0] || "School"} Institution`;
+
+  let dbUser = await db.user.findUnique({
+    where: { email: normalizedEmail },
+    include: { institution: { select: { name: true, slug: true } } },
+  });
+
+  if (!dbUser) {
+    const institutionSlug = await uniqueInstitutionSlug(
+      `${domain.split(".")[0]}-school`,
+    );
+    const institution = await db.institution.create({
+      data: {
+        name: inferredInstitutionName,
+        slug: institutionSlug,
+        email: normalizedEmail,
+        country: "BD",
+        timezone: "Asia/Dhaka",
+        currency: "BDT",
+      },
+    });
+
+    await db.institutionSettings.upsert({
+      where: { institutionId: institution.id },
+      update: {},
+      create: {
+        institutionId: institution.id,
+        academicYear: "2026-2027",
+        termsPerYear: 3,
+        emailNotifs: true,
+      },
+    });
+
+    dbUser = await db.user.create({
+      data: {
+        email: normalizedEmail,
+        name: user.name?.trim() || localPart,
+        image: user.image ?? null,
+        role: "SUPER_ADMIN",
+        emailVerified: new Date(),
+        isActive: true,
+        institutionId: institution.id,
+      },
+      include: { institution: { select: { name: true, slug: true } } },
+    });
+  } else {
+    dbUser = await db.user.update({
+      where: { id: dbUser.id },
+      data: {
+        name: user.name?.trim() || dbUser.name,
+        image: user.image ?? dbUser.image,
+        lastLoginAt: new Date(),
+        isActive: true,
+      },
+      include: { institution: { select: { name: true, slug: true } } },
+    });
+  }
+
+  return dbUser;
+}
+
 const providers: any[] = [
   Credentials({
     name: "Credentials",
@@ -166,6 +252,30 @@ const authConfig: any = {
   pages: { signIn: "/auth/login" },
   providers,
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider !== "google") return true;
+
+      const email = user.email?.trim().toLowerCase();
+      if (!email) return false;
+
+      try {
+        const dbUser = await upsertGoogleUserContext({
+          email,
+          name: user.name,
+          image: user.image,
+        });
+
+        (user as any).id = dbUser.id;
+        (user as any).role = dbUser.role;
+        (user as any).institutionId = dbUser.institutionId;
+        (user as any).institutionName = dbUser.institution.name;
+        (user as any).institutionSlug = dbUser.institution.slug;
+        return true;
+      } catch (error) {
+        console.error("[AUTH_GOOGLE_SIGNIN]", error);
+        return false;
+      }
+    },
     async jwt({ token, user }) {
       if (user) {
         const typedUser = user as {

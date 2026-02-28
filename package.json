@@ -19,6 +19,7 @@
     "db:migrate:prod": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:import:bd-demo": "node scripts/import-bd-demo-students.mjs",
     "db:reset": "prisma migrate reset --force && npm run db:seed",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",

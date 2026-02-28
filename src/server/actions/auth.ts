@@ -122,6 +122,18 @@ export async function registerInstitution(
         },
       });
 
+      await tx.institutionSettings.upsert({
+        where: { institutionId: institution.id },
+        update: {},
+        create: {
+          institutionId: institution.id,
+          academicYear: "2026-2027",
+          termsPerYear: 3,
+          emailNotifs: true,
+          smsNotifs: false,
+        },
+      });
+
     });
 
     // Send welcome email (non-blocking)
