@@ -1,6 +1,8 @@
 # ScholaOps
 
 [![CI / CD](https://github.com/yusufdupsc1/ScholaOps/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufdupsc1/ScholaOps/actions/workflows/ci.yml)
+[![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fyusufdupsc1%2Fscholaops-2496ED?logo=docker)](https://github.com/yusufdupsc1/ScholaOps/pkgs/container/scholaops)
+[![Docker Hub](https://img.shields.io/docker/pulls/yusufdupsc1/scholaops?logo=docker&label=Docker%20Pulls)](https://hub.docker.com/r/yusufdupsc1/scholaops)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748)](https://www.prisma.io/)
@@ -119,6 +121,31 @@ docker compose up -d --build
 - Includes app, Postgres, Redis, and a migration job service.
 
 Full runbook: [Deployment Guide](./docs/DEPLOYMENT.md).
+
+### Run Directly From Registry Image
+
+Pull latest from Docker Hub:
+
+```bash
+docker pull yusufdupsc1/scholaops:latest
+```
+
+Pull latest from GHCR:
+
+```bash
+docker pull ghcr.io/yusufdupsc1/scholaops:latest
+```
+
+Run container:
+
+```bash
+docker run --name scholaops \
+  -p 3000:3000 \
+  -e DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB" \
+  -e AUTH_SECRET="replace-with-32-plus-char-secret" \
+  -e NEXT_PUBLIC_APP_URL="http://localhost:3000" \
+  -d yusufdupsc1/scholaops:latest
+```
 
 ## API Surface
 
