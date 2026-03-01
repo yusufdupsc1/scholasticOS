@@ -50,6 +50,7 @@ interface NavItem {
     label: string;
     href: string;
     roles?: string[];
+    exact?: boolean;
   }>;
 }
 
@@ -83,6 +84,12 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
         icon: GraduationCap,
         roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL", "STAFF"],
         children: [
+          {
+            label: "All Students",
+            href: "/dashboard/students",
+            roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL", "STAFF"],
+            exact: true,
+          },
           {
             label: "Student Reports",
             href: "/dashboard/students/reports",
@@ -139,7 +146,7 @@ export function Sidebar({ session }: SidebarProps) {
     .toUpperCase()
     .slice(0, 2) ?? "U";
 
-  const isActive = (href: string) => {
+  const isActive = (href: string, exact = false) => {
     if (href.includes("?")) {
       const [pathOnly, rawQuery] = href.split("?", 2);
       if (!pathOnly || pathname !== pathOnly) return false;
@@ -152,6 +159,7 @@ export function Sidebar({ session }: SidebarProps) {
       return true;
     }
     if (href === "/dashboard") return pathname === "/dashboard";
+    if (exact) return pathname === href;
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
@@ -162,7 +170,7 @@ export function Sidebar({ session }: SidebarProps) {
     for (const section of NAV_SECTIONS) {
       for (const item of section.items) {
         if (!item.children?.length) continue;
-        const hasActiveChild = item.children.some((child) => isActive(child.href));
+        const hasActiveChild = item.children.some((child) => isActive(child.href, child.exact));
         const key = item.href;
         if (typeof next[key] === "undefined") {
           next[key] = hasActiveChild || isActive(item.href);
@@ -224,7 +232,9 @@ export function Sidebar({ session }: SidebarProps) {
                     const visibleChildren = (item.children ?? []).filter(
                       (child) => !child.roles || child.roles.includes(userRole),
                     );
-                    const hasActiveChild = visibleChildren.some((child) => isActive(child.href));
+                    const hasActiveChild = visibleChildren.some((child) =>
+                      isActive(child.href, child.exact),
+                    );
                     const active = isActive(item.href) || hasActiveChild;
 
                     if (!hasChildren || visibleChildren.length === 0) {
@@ -304,7 +314,7 @@ export function Sidebar({ session }: SidebarProps) {
                                 prefetch={false}
                                 className={cn(
                                   "flex items-center rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-                                  isActive(child.href)
+                                  isActive(child.href, child.exact)
                                     ? "bg-primary/10 text-primary"
                                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                                 )}
