@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { showMacDeleteToast } from "@/components/ui/macos-toast";
 import {
     createClass, updateClass, deleteClass, createSubject, updateSubject, deleteSubject,
     type ClassFormData, type SubjectFormData,
@@ -186,7 +187,7 @@ export function ClassesClient({ classes, subjects, teachers, total, pages, curre
         startTransition(async () => {
             const res = await deleteSubject(id);
             if (res.success) {
-                toast.success("Subject deactivated");
+                showMacDeleteToast({ entity: "Subject", name });
                 router.refresh();
             } else {
                 toast.error(res.error);

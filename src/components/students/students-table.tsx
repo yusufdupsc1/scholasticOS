@@ -7,6 +7,7 @@ import { Edit3, Plus, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { setStudentStatus } from "@/server/actions/students";
+import { showMacDeleteToast } from "@/components/ui/macos-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -266,7 +267,10 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
           throw new Error(json?.error?.message ?? "Failed to delete student");
         }
 
-        toast.success("Student deleted");
+        showMacDeleteToast({
+          entity: "Student",
+          name: `${student.firstName} ${student.lastName}`,
+        });
         router.refresh();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to delete student");

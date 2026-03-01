@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { showMacDeleteToast } from "@/components/ui/macos-toast";
 import {
     createTeacher,
     updateTeacher,
@@ -170,7 +171,7 @@ export function TeachersClient({ teachers, subjects, total, pages, currentPage }
         startTransition(async () => {
             const res = await deleteTeacher(id);
             if (res.success) {
-                toast.success("Teacher deactivated");
+                showMacDeleteToast({ entity: "Teacher", name });
                 router.refresh();
             }
             else toast.error(res.error);
