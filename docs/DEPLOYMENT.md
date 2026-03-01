@@ -58,12 +58,14 @@ Required repository secrets for Docker Hub push:
 
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN` (recommended: Docker Hub access token, not account password)
+- `DOCKERHUB_IMAGE` (optional override, e.g. `scholaops1` or `yusufdupsc1/scholaops1`)
 
 Notes:
 
 - Image names are normalized to lowercase automatically in CI (prevents invalid tag failures).
 - If Docker Hub secrets are missing, CI logs a notice and skips Docker Hub push without failing the workflow.
 - GHCR push still runs using `GITHUB_TOKEN`.
+- If `DOCKERHUB_IMAGE` is set, CI uses it instead of GitHub repository name.
 
 Example resulting images:
 
