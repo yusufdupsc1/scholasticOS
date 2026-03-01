@@ -4,7 +4,7 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface MacDeleteToastInput {
-  entity: "Student" | "Teacher" | "Subject";
+  entity: "Student" | "Teacher" | "Subject" | "Class";
   name?: string;
 }
 

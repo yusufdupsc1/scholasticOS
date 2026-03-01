@@ -3,7 +3,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Users, BookOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, BookOpen, TriangleAlert } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { SearchInput } from "@/components/ui/search-input";
@@ -35,6 +35,10 @@ interface Props {
 }
 
 const NO_TEACHER_VALUE = "__no_teacher__";
+type DeleteTarget =
+  | { kind: "class"; id: string; name: string }
+  | { kind: "subject"; id: string; name: string }
+  | null;
 
 function ClassForm({ initial, teachers, onSuccess }: { initial?: ClassRow; teachers: Teacher[]; onSuccess: () => void }) {
     const [pending, startTransition] = useTransition();
@@ -165,6 +169,7 @@ export function ClassesClient({ classes, subjects, teachers, total, pages, curre
     const [editClass, setEditClass] = useState<ClassRow | null>(null);
     const [editSubject, setEditSubject] = useState<Subject | null>(null);
     const [dialogType, setDialogType] = useState<"class" | "subject">("class");
+    const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
     const [, startTransition] = useTransition();
 
     const handleTabChange = (tab: string) => {
@@ -174,24 +179,34 @@ export function ClassesClient({ classes, subjects, teachers, total, pages, curre
     };
 
     const handleDeleteClass = (id: string, name: string) => {
-        if (!confirm(`Deactivate class "${name}"?`)) return;
-        startTransition(async () => {
-            const res = await deleteClass(id);
-            if (res.success) toast.success("Class deactivated");
-            else toast.error(res.error);
-        });
+        setDeleteTarget({ kind: "class", id, name });
     };
 
     const handleDeleteSubject = (id: string, name: string) => {
-        if (!confirm(`Deactivate subject "${name}"?`)) return;
+        setDeleteTarget({ kind: "subject", id, name });
+    };
+
+    const confirmDelete = () => {
+        if (!deleteTarget) return;
         startTransition(async () => {
-            const res = await deleteSubject(id);
-            if (res.success) {
-                showMacDeleteToast({ entity: "Subject", name });
-                router.refresh();
+            if (deleteTarget.kind === "class") {
+                const res = await deleteClass(deleteTarget.id);
+                if (res.success) {
+                    showMacDeleteToast({ entity: "Class", name: deleteTarget.name });
+                    router.refresh();
+                } else {
+                    toast.error(res.error);
+                }
             } else {
-                toast.error(res.error);
+                const res = await deleteSubject(deleteTarget.id);
+                if (res.success) {
+                    showMacDeleteToast({ entity: "Subject", name: deleteTarget.name });
+                    router.refresh();
+                } else {
+                    toast.error(res.error);
+                }
             }
+            setDeleteTarget(null);
         });
     };
 
@@ -333,6 +348,45 @@ export function ClassesClient({ classes, subjects, teachers, total, pages, curre
                     </div>
                 </TabsContent>
             </Tabs>
+
+            <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <DialogContent className="max-w-md border-zinc-700/60 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 text-zinc-100 shadow-2xl backdrop-blur-xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-zinc-100">
+                            <span className="rounded-xl border border-red-400/40 bg-red-500/20 p-1.5">
+                                <TriangleAlert className="h-4 w-4 text-red-300" />
+                            </span>
+                            Confirm Deactivation
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                        <p className="text-sm text-zinc-200">
+                            Deactivate {deleteTarget?.kind === "class" ? "class" : "subject"}{" "}
+                            <span className="font-semibold">{deleteTarget?.name}</span>?
+                        </p>
+                        <p className="text-xs text-zinc-400">
+                            This keeps the record for audit/history and hides it from active lists.
+                        </p>
+                    </div>
+                    <div className="mt-2 flex items-center justify-end gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="border-zinc-600 bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+                            onClick={() => setDeleteTarget(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            className="bg-red-600 text-white hover:bg-red-500"
+                            onClick={confirmDelete}
+                        >
+                            Deactivate
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
