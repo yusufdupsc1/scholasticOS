@@ -10,7 +10,9 @@ ENV PATH="$PNPM_HOME:$PATH"
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 RUN corepack enable
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/build"
 COPY package.json pnpm-lock.yaml* ./
+COPY prisma/schema.prisma ./prisma/schema.prisma
 RUN pnpm install --frozen-lockfile
 
 # Build stage
