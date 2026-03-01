@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   BookOpen,
   GraduationCap,
+  type LucideIcon,
   RefreshCw,
   School,
   UserCheck,
@@ -82,7 +83,7 @@ function SummaryCard({
   activeCount,
 }: {
   label: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   count: number;
   activeCount: number;
 }) {

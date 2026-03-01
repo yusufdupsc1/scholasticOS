@@ -1,11 +1,24 @@
 import Link from "next/link";
-import { UserPlus, CalendarCheck, Megaphone, Banknote } from "lucide-react";
+import {
+  UserPlus,
+  CalendarCheck,
+  Megaphone,
+  Banknote,
+  FileSignature,
+  ShieldCheck,
+  Globe,
+  Building2,
+} from "lucide-react";
 
 const actions = [
   { label: "Add Student", href: "/dashboard/students", icon: UserPlus, color: "text-blue-500", bg: "bg-blue-500/10" },
   { label: "Take Attendance", href: "/dashboard/attendance", icon: CalendarCheck, color: "text-emerald-500", bg: "bg-emerald-500/10" },
   { label: "Create Announcement", href: "/dashboard/announcements", icon: Megaphone, color: "text-amber-500", bg: "bg-amber-500/10" },
-  { label: "Record Payment", href: "/dashboard/finance", icon: Banknote, color: "text-purple-500", bg: "bg-purple-500/10" },
+  { label: "Record Payment", href: "/dashboard/finance", icon: Banknote, color: "text-cyan-600", bg: "bg-cyan-500/10" },
+  { label: "Principal Signature", href: "/dashboard/settings?tab=academic", icon: FileSignature, color: "text-indigo-500", bg: "bg-indigo-500/10" },
+  { label: "Access Requests", href: "/dashboard/settings?tab=access", icon: ShieldCheck, color: "text-rose-500", bg: "bg-rose-500/10" },
+  { label: "Guest Reports", href: "/dashboard/settings?tab=academic", icon: Globe, color: "text-violet-500", bg: "bg-violet-500/10" },
+  { label: "School Branding", href: "/dashboard/settings?tab=profile", icon: Building2, color: "text-slate-600", bg: "bg-slate-500/10" },
 ];
 
 export function QuickActions() {

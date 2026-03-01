@@ -11,6 +11,15 @@ export const metadata: Metadata = {
 
 const PRIVILEGED_ROLES = ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"];
 
+async function safeQuery<T>(load: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await load();
+  } catch (error) {
+    console.error("[INACTIVE_CONTROL_QUERY]", error);
+    return fallback;
+  }
+}
+
 export default async function InactiveControlPage() {
   const session = await auth();
   const user = session?.user as
@@ -27,11 +36,74 @@ export default async function InactiveControlPage() {
 
   const institutionId = user.institutionId;
 
+  const students = await safeQuery(
+    () =>
+      db.student.findMany({
+        where: { institutionId, status: "INACTIVE" },
+        select: {
+          id: true,
+          studentId: true,
+          firstName: true,
+          lastName: true,
+          updatedAt: true,
+          class: { select: { name: true, grade: true, section: true } },
+        },
+        orderBy: { updatedAt: "desc" },
+      }),
+    [],
+  );
+
+  const teachers = await safeQuery(
+    () =>
+      db.teacher.findMany({
+        where: { institutionId, status: "INACTIVE" },
+        select: {
+          id: true,
+          teacherId: true,
+          firstName: true,
+          lastName: true,
+          specialization: true,
+          updatedAt: true,
+        },
+        orderBy: { updatedAt: "desc" },
+      }),
+    [],
+  );
+
+  const classes = await safeQuery(
+    () =>
+      db.class.findMany({
+        where: { institutionId, isActive: false },
+        select: {
+          id: true,
+          name: true,
+          grade: true,
+          section: true,
+          updatedAt: true,
+          _count: { select: { students: true } },
+        },
+        orderBy: [{ grade: "asc" }, { section: "asc" }],
+      }),
+    [],
+  );
+
+  const subjects = await safeQuery(
+    () =>
+      db.subject.findMany({
+        where: { institutionId, isActive: false },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          updatedAt: true,
+          _count: { select: { teachers: true } },
+        },
+        orderBy: { name: "asc" },
+      }),
+    [],
+  );
+
   const [
-    students,
-    teachers,
-    classes,
-    subjects,
     studentActive,
     studentInactive,
     teacherActive,
@@ -41,61 +113,38 @@ export default async function InactiveControlPage() {
     subjectActive,
     subjectInactive,
   ] = await Promise.all([
-    db.student.findMany({
-      where: { institutionId, status: "INACTIVE" },
-      select: {
-        id: true,
-        studentId: true,
-        firstName: true,
-        lastName: true,
-        updatedAt: true,
-        class: { select: { name: true, grade: true, section: true } },
-      },
-      orderBy: { updatedAt: "desc" },
-    }),
-    db.teacher.findMany({
-      where: { institutionId, status: "INACTIVE" },
-      select: {
-        id: true,
-        teacherId: true,
-        firstName: true,
-        lastName: true,
-        specialization: true,
-        updatedAt: true,
-      },
-      orderBy: { updatedAt: "desc" },
-    }),
-    db.class.findMany({
-      where: { institutionId, isActive: false },
-      select: {
-        id: true,
-        name: true,
-        grade: true,
-        section: true,
-        updatedAt: true,
-        _count: { select: { students: true } },
-      },
-      orderBy: [{ grade: "asc" }, { section: "asc" }],
-    }),
-    db.subject.findMany({
-      where: { institutionId, isActive: false },
-      select: {
-        id: true,
-        name: true,
-        code: true,
-        updatedAt: true,
-        _count: { select: { teachers: true } },
-      },
-      orderBy: { name: "asc" },
-    }),
-    db.student.count({ where: { institutionId, status: "ACTIVE" } }),
-    db.student.count({ where: { institutionId, status: "INACTIVE" } }),
-    db.teacher.count({ where: { institutionId, status: "ACTIVE" } }),
-    db.teacher.count({ where: { institutionId, status: "INACTIVE" } }),
-    db.class.count({ where: { institutionId, isActive: true } }),
-    db.class.count({ where: { institutionId, isActive: false } }),
-    db.subject.count({ where: { institutionId, isActive: true } }),
-    db.subject.count({ where: { institutionId, isActive: false } }),
+    safeQuery(
+      () => db.student.count({ where: { institutionId, status: "ACTIVE" } }),
+      0,
+    ),
+    safeQuery(
+      () => db.student.count({ where: { institutionId, status: "INACTIVE" } }),
+      0,
+    ),
+    safeQuery(
+      () => db.teacher.count({ where: { institutionId, status: "ACTIVE" } }),
+      0,
+    ),
+    safeQuery(
+      () => db.teacher.count({ where: { institutionId, status: "INACTIVE" } }),
+      0,
+    ),
+    safeQuery(
+      () => db.class.count({ where: { institutionId, isActive: true } }),
+      0,
+    ),
+    safeQuery(
+      () => db.class.count({ where: { institutionId, isActive: false } }),
+      0,
+    ),
+    safeQuery(
+      () => db.subject.count({ where: { institutionId, isActive: true } }),
+      0,
+    ),
+    safeQuery(
+      () => db.subject.count({ where: { institutionId, isActive: false } }),
+      0,
+    ),
   ]);
 
   return (

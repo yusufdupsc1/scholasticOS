@@ -11,9 +11,11 @@ import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { RecentStudents } from "@/components/dashboard/recent-students";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { UpcomingEvents } from "@/components/dashboard/upcoming-events";
+import { ExecutiveCommandCenter } from "@/components/dashboard/executive-command-center";
 import { DEFAULT_LOCALE, DEFAULT_TIMEZONE } from "@/lib/utils";
 import { safeLoader } from "@/lib/server/safe-loader";
 import { getDefaultDashboardPath } from "@/lib/role-routing";
+import { Role } from "@prisma/client";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -93,6 +95,162 @@ async function getUpcomingEvents(institutionId: string) {
   }
 }
 
+async function getExecutiveData(institutionId: string) {
+  try {
+    const [
+      institution,
+      settings,
+      pendingAccessRequests,
+      parentAccounts,
+      userRoleCounts,
+      inactiveStudents,
+      inactiveTeachers,
+      inactiveClasses,
+      inactiveSubjects,
+    ] = await Promise.all([
+      db.institution.findUnique({
+        where: { id: institutionId },
+        select: {
+          slug: true,
+          name: true,
+          logo: true,
+          email: true,
+          phone: true,
+          website: true,
+          address: true,
+          city: true,
+          country: true,
+        },
+      }),
+      db.institutionSettings.findUnique({
+        where: { institutionId },
+        select: {
+          signatoryName: true,
+          signatoryTitle: true,
+          certificateLogoUrl: true,
+          publicReportsEnabled: true,
+        },
+      }),
+      db.accessRequest.count({
+        where: { institutionId, status: "PENDING" },
+      }),
+      db.parent.count({
+        where: {
+          student: { institutionId },
+        },
+      }),
+      db.user.groupBy({
+        by: ["role"],
+        where: {
+          institutionId,
+          isActive: true,
+          approvalStatus: "APPROVED",
+        },
+        _count: { _all: true },
+      }),
+      db.student.count({ where: { institutionId, status: "INACTIVE" } }),
+      db.teacher.count({ where: { institutionId, status: "INACTIVE" } }),
+      db.class.count({ where: { institutionId, isActive: false } }),
+      db.subject.count({ where: { institutionId, isActive: false } }),
+    ]);
+
+    const roleMix = {
+      admins: 0,
+      principals: 0,
+      teachers: 0,
+      students: 0,
+      parents: 0,
+    };
+
+    for (const row of userRoleCounts) {
+      const count = Number(row._count?._all ?? 0);
+      if (row.role === Role.SUPER_ADMIN || row.role === Role.ADMIN) {
+        roleMix.admins += count;
+      } else if (row.role === Role.PRINCIPAL) {
+        roleMix.principals += count;
+      } else if (row.role === Role.TEACHER) {
+        roleMix.teachers += count;
+      } else if (row.role === Role.STUDENT) {
+        roleMix.students += count;
+      } else if (row.role === Role.PARENT) {
+        roleMix.parents += count;
+      }
+    }
+
+    const profileFields = [
+      institution?.name,
+      institution?.email,
+      institution?.phone,
+      institution?.website,
+      institution?.address,
+      institution?.city,
+      institution?.country,
+      institution?.logo,
+    ];
+    const completedProfileFields = profileFields.filter(
+      (value) => typeof value === "string" && value.trim().length > 0,
+    ).length;
+    const profileCompletion = Math.round(
+      (completedProfileFields / profileFields.length) * 100,
+    );
+
+    return {
+      institutionSlug: institution?.slug ?? "school",
+      profileCompletion,
+      signatureReady: Boolean(
+        settings?.signatoryName?.trim() && settings?.signatoryTitle?.trim(),
+      ),
+      logoReady: Boolean(
+        institution?.logo?.trim() || settings?.certificateLogoUrl?.trim(),
+      ),
+      publicReportsEnabled: Boolean(settings?.publicReportsEnabled),
+      pendingAccessRequests,
+      parentAccounts,
+      roleMix,
+      inactive: {
+        students: inactiveStudents,
+        teachers: inactiveTeachers,
+        classes: inactiveClasses,
+        subjects: inactiveSubjects,
+      },
+      sslCommerzConfigured: Boolean(
+        process.env.SSLCOMMERZ_STORE_ID &&
+          process.env.SSLCOMMERZ_STORE_PASSWORD,
+      ),
+      stripeConfigured: Boolean(
+        process.env.STRIPE_SECRET_KEY &&
+          process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+      ),
+    };
+  } catch (error) {
+    console.error("[DASHBOARD_EXECUTIVE]", error);
+    return {
+      institutionSlug: "school",
+      profileCompletion: 0,
+      signatureReady: false,
+      logoReady: false,
+      publicReportsEnabled: false,
+      pendingAccessRequests: 0,
+      parentAccounts: 0,
+      roleMix: {
+        admins: 0,
+        principals: 0,
+        teachers: 0,
+        students: 0,
+        parents: 0,
+      },
+      inactive: {
+        students: 0,
+        teachers: 0,
+        classes: 0,
+        subjects: 0,
+      },
+      sslCommerzConfigured: false,
+      stripeConfigured: false,
+    };
+  }
+}
+
 export default async function DashboardPage() {
   const session = await auth();
   const user = session?.user as {
@@ -147,6 +305,35 @@ export default async function DashboardPage() {
     [],
     { institutionId },
   );
+  const executive = await safeLoader(
+    "DASHBOARD_EXECUTIVE",
+    () => getExecutiveData(institutionId),
+    {
+      institutionSlug: "school",
+      profileCompletion: 0,
+      signatureReady: false,
+      logoReady: false,
+      publicReportsEnabled: false,
+      pendingAccessRequests: 0,
+      parentAccounts: 0,
+      roleMix: {
+        admins: 0,
+        principals: 0,
+        teachers: 0,
+        students: 0,
+        parents: 0,
+      },
+      inactive: {
+        students: 0,
+        teachers: 0,
+        classes: 0,
+        subjects: 0,
+      },
+      sslCommerzConfigured: false,
+      stripeConfigured: false,
+    },
+    { institutionId },
+  );
 
   const stats = statsResult ?? {
     totalStudents: 0,
@@ -181,6 +368,20 @@ export default async function DashboardPage() {
 
       {/* KPI Stats */}
       <StatsGrid stats={stats} />
+
+      <ExecutiveCommandCenter
+        institutionSlug={executive.institutionSlug}
+        profileCompletion={executive.profileCompletion}
+        signatureReady={executive.signatureReady}
+        logoReady={executive.logoReady}
+        publicReportsEnabled={executive.publicReportsEnabled}
+        pendingAccessRequests={executive.pendingAccessRequests}
+        parentAccounts={executive.parentAccounts}
+        roleMix={executive.roleMix}
+        inactive={executive.inactive}
+        sslCommerzConfigured={executive.sslCommerzConfigured}
+        stripeConfigured={executive.stripeConfigured}
+      />
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -127,16 +127,56 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
     label: "System",
     items: [
       {
-        label: "Inactive Control",
-        href: "/dashboard/control/inactive",
+        label: "Governance",
+        href: "/dashboard/control",
         icon: ArchiveRestore,
         roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"],
+        children: [
+          {
+            label: "Inactive Records",
+            href: "/dashboard/control/inactive",
+            roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"],
+            exact: true,
+          },
+          {
+            label: "Access Requests",
+            href: "/dashboard/settings?tab=access",
+            roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"],
+          },
+          {
+            label: "Visitor Control",
+            href: "/dashboard/control/visitors",
+            roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"],
+          },
+          {
+            label: "Import Center",
+            href: "/dashboard/control/imports",
+            roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"],
+          },
+        ],
       },
       {
-        label: "Settings",
+        label: "Institution",
         href: "/dashboard/settings",
         icon: Settings,
-        roles: ["SUPER_ADMIN", "ADMIN"],
+        roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"],
+        children: [
+          {
+            label: "Profile & Logo",
+            href: "/dashboard/settings?tab=profile",
+            roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"],
+          },
+          {
+            label: "Academic & Signatures",
+            href: "/dashboard/settings?tab=academic&focus=signatures",
+            roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"],
+          },
+          {
+            label: "Guest Public Reports",
+            href: "/dashboard/settings?tab=academic&focus=public",
+            roles: ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"],
+          },
+        ],
       },
     ],
   },

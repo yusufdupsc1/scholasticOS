@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Save, Building2, GraduationCap, ShieldCheck, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
@@ -573,11 +574,24 @@ function AccessRequestsTab({ canReview }: { canReview: boolean }) {
 export function SettingsClient({ institution, settings, viewerRole }: Props) {
   const canEditSettings = ["SUPER_ADMIN", "ADMIN"].includes(viewerRole);
   const canReviewRequests = ["SUPER_ADMIN", "ADMIN", "PRINCIPAL"].includes(viewerRole);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const activeTab =
+    requestedTab === "profile" || requestedTab === "academic" || requestedTab === "access"
+      ? requestedTab
+      : "profile";
+
+  const setTab = (nextTab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", nextTab);
+    router.replace(`/dashboard/settings?${params.toString()}`);
+  };
 
   return (
     <>
       <PageHeader title="Settings" description="Manage institution profile, operations, and security workflows" />
-      <Tabs defaultValue="profile">
+      <Tabs value={activeTab} onValueChange={setTab}>
         <TabsList className="mb-6 w-full sm:w-auto">
           <TabsTrigger value="profile" className="gap-1.5"><Building2 className="h-3.5 w-3.5" />Profile</TabsTrigger>
           <TabsTrigger value="academic" className="gap-1.5"><GraduationCap className="h-3.5 w-3.5" />Academic</TabsTrigger>
