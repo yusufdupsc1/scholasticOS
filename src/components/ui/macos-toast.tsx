@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface MacDeleteToastInput {
@@ -10,8 +10,17 @@ interface MacDeleteToastInput {
 
 export function showMacDeleteToast({ entity, name }: MacDeleteToastInput) {
   toast.custom(
-    () => (
-      <div className="w-[320px] rounded-2xl border border-white/30 bg-gradient-to-b from-zinc-900/90 via-zinc-900/85 to-zinc-950/90 p-3 text-zinc-50 shadow-2xl backdrop-blur-xl">
+    (id) => (
+      <div className="relative w-[320px] rounded-2xl border border-white/30 bg-gradient-to-b from-zinc-900/90 via-zinc-900/85 to-zinc-950/90 p-3 text-zinc-50 shadow-2xl backdrop-blur-xl">
+        <button
+          type="button"
+          aria-label="Close notification"
+          onClick={() => toast.dismiss(id)}
+          className="absolute right-2 top-2 rounded-md p-1 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+
         <div className="mb-2 flex items-center gap-2">
           <div className="rounded-xl border border-red-400/35 bg-red-500/20 p-1.5">
             <Trash2 className="h-3.5 w-3.5 text-red-300" />
