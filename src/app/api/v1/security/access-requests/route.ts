@@ -20,14 +20,21 @@ export async function GET(req: NextRequest) {
       status: req.nextUrl.searchParams.get("status") ?? undefined,
       scope: req.nextUrl.searchParams.get("scope") ?? undefined,
       q: req.nextUrl.searchParams.get("q") ?? "",
+      from: req.nextUrl.searchParams.get("from") ?? undefined,
+      to: req.nextUrl.searchParams.get("to") ?? undefined,
       limit: req.nextUrl.searchParams.get("limit") ?? 100,
     });
+
+    const fromDate = query.from ? new Date(`${query.from}T00:00:00.000Z`) : undefined;
+    const toDate = query.to ? new Date(`${query.to}T23:59:59.999Z`) : undefined;
 
     const rows = await listAccessRequests({
       institutionId: ctx.institutionId,
       status: query.status,
       scope: query.scope,
       q: query.q,
+      from: fromDate,
+      to: toDate,
       limit: query.limit,
     });
 

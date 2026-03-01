@@ -28,6 +28,8 @@ interface ListAccessRequestsInput {
   status?: AccessRequestStatus;
   scope?: AccessRequestScope;
   q?: string;
+  from?: Date;
+  to?: Date;
   limit?: number;
 }
 
@@ -261,6 +263,14 @@ export async function listAccessRequests(input: ListAccessRequestsInput) {
       institutionId: input.institutionId,
       ...(input.status ? { status: input.status } : {}),
       ...(input.scope ? { requestedScope: input.scope } : {}),
+      ...(input.from || input.to
+        ? {
+            requestedAt: {
+              ...(input.from ? { gte: input.from } : {}),
+              ...(input.to ? { lte: input.to } : {}),
+            },
+          }
+        : {}),
       ...(input.q
         ? {
             OR: [

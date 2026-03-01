@@ -394,6 +394,8 @@ function AccessRequestsTab({ canReview }: { canReview: boolean }) {
   const [status, setStatus] = useState<string>("ALL");
   const [scope, setScope] = useState<string>("ALL");
   const [query, setQuery] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   async function load() {
     if (!canReview) return;
@@ -404,6 +406,8 @@ function AccessRequestsTab({ canReview }: { canReview: boolean }) {
       if (status !== "ALL") params.set("status", status);
       if (scope !== "ALL") params.set("scope", scope);
       if (query.trim()) params.set("q", query.trim());
+      if (fromDate) params.set("from", fromDate);
+      if (toDate) params.set("to", toDate);
       params.set("limit", "200");
 
       const res = await fetch(`/api/v1/security/access-requests?${params.toString()}`);
@@ -499,9 +503,33 @@ function AccessRequestsTab({ canReview }: { canReview: boolean }) {
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name, email, phone" />
         </div>
 
+        <div className="space-y-1">
+          <Label>From</Label>
+          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-[165px]" />
+        </div>
+
+        <div className="space-y-1">
+          <Label>To</Label>
+          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-[165px]" />
+        </div>
+
         <Button type="button" variant="outline" onClick={() => void load()} disabled={loading}>
           <RefreshCw className={`mr-1 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           Refresh
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            setStatus("ALL");
+            setScope("ALL");
+            setQuery("");
+            setFromDate("");
+            setToDate("");
+          }}
+        >
+          Clear filters
         </Button>
       </div>
 
