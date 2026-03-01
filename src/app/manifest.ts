@@ -2,15 +2,15 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "scholaOps",
-    short_name: "scholaOps",
-    description: "SchoolOps ERP - attendance, academics, finance, and communication.",
+    name: "Dhadash",
+    short_name: "Dhadash",
+    description: "Govt. Primary school operations: attendance register, fees, receipt, and notices.",
     start_url: "/",
     display: "standalone",
     background_color: "#f8fafc",
-    theme_color: "#2563eb",
+    theme_color: "#006A4E",
     orientation: "portrait",
-    lang: "en",
+    lang: "bn",
     icons: [
       {
         src: "/icons/icon-192.png",

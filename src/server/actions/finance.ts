@@ -13,6 +13,11 @@ import {
 } from "@/lib/server/serializers";
 import { createDomainEvent, publishDomainEvent } from "@/server/events/publish";
 import { buildStudentVisibilityWhere, isPrivilegedOrStaff } from "@/lib/server/role-scope";
+import {
+  isGovtPrimaryModeEnabled,
+  isPrimaryGrade,
+} from "@/lib/config";
+import { GOVT_PRIMARY_FEE_PRESETS } from "@/lib/finance/fee-presets";
 
 const FeeSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -41,9 +46,7 @@ const FeeSchema = z.object({
 const PaymentSchema = z.object({
   feeId: z.string().min(1, "Fee is required"),
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
-  method: z
-    .enum(["CASH", "CARD", "BANK_TRANSFER", "CHEQUE", "ONLINE", "STRIPE"])
-    .default("CASH"),
+  method: z.enum(["CASH", "ONLINE"]).default("CASH"),
   transactionRef: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -97,6 +100,13 @@ function requireFinanceRole(role: string) {
   }
 }
 
+function assertAllowedPaymentMethod(method: PaymentFormData["method"]) {
+  if (!isGovtPrimaryModeEnabled()) return;
+  if (!["CASH", "ONLINE"].includes(method)) {
+    throw new Error("Only Cash and SSLCommerz online payments are allowed in Govt Primary mode.");
+  }
+}
+
 // ─── Fee CRUD ─────────────────────────────────
 
 export async function createFee(
@@ -122,8 +132,23 @@ export async function createFee(
 
     const student = await db.student.findFirst({
       where: { id: data.studentId, institutionId },
+      select: {
+        id: true,
+        class: {
+          select: {
+            grade: true,
+          },
+        },
+      },
     });
     if (!student) return { success: false, error: "Student not found" };
+    if (
+      isGovtPrimaryModeEnabled() &&
+      student.class?.grade &&
+      !isPrimaryGrade(student.class.grade)
+    ) {
+      return { success: false, error: "Only Class 1 to 5 students are supported in Govt Primary mode." };
+    }
 
     const fee = await db.$transaction(async (tx) => {
       const f = await tx.fee.create({
@@ -187,6 +212,7 @@ export async function recordPayment(
     }
 
     const data = parsed.data;
+    assertAllowedPaymentMethod(data.method);
 
     const fee = await db.fee.findFirst({
       where: { id: data.feeId, institutionId },
@@ -320,11 +346,13 @@ export async function getFees({
         },
         payments: {
           select: {
+            id: true,
             amount: true,
             paidAt: true,
             method: true,
             receiptNumber: true,
           },
+          orderBy: { paidAt: "desc" },
         },
       },
       orderBy: { dueDate: "asc" },
@@ -350,6 +378,7 @@ export async function getFees({
       },
       payments: asPlainArray(fee.payments).map((payment) => ({
         amount: toNumber(payment.amount),
+        id: payment.id,
         paidAt: toIsoDate(payment.paidAt),
         method: payment.method,
         receiptNumber: payment.receiptNumber,
@@ -428,4 +457,12 @@ export async function getFinanceSummary() {
       amount: toNumber(row._sum.amount),
     })),
   };
+}
+
+export async function getGovtPrimaryFeePresets() {
+  if (!isGovtPrimaryModeEnabled()) {
+    return [];
+  }
+
+  return GOVT_PRIMARY_FEE_PRESETS;
 }

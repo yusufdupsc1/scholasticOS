@@ -4,13 +4,14 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, XCircle, Clock, AlertCircle, Users } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, AlertCircle, Users, Printer } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { markAttendance, getAttendanceForClass } from "@/server/actions/attendance";
+import { useT } from "@/lib/i18n/client";
 
 type ClassRow = { id: string; name: string; grade: string; section: string };
 type Summary = { total: number; present: number; absent: number; late: number; excused: number; presentRate: number };
@@ -30,11 +31,11 @@ type StudentRow = {
 };
 
 const STATUS_CONFIG: Record<AttendanceStatus, { label: string; icon: React.ElementType; color: string; bg: string }> = {
-    PRESENT: { label: "Present", icon: CheckCircle2, color: "text-green-600", bg: "bg-green-500/10" },
-    ABSENT: { label: "Absent", icon: XCircle, color: "text-red-600", bg: "bg-red-500/10" },
-    LATE: { label: "Late", icon: Clock, color: "text-yellow-600", bg: "bg-yellow-500/10" },
-    EXCUSED: { label: "Excused", icon: AlertCircle, color: "text-blue-600", bg: "bg-blue-500/10" },
-    HOLIDAY: { label: "Holiday", icon: AlertCircle, color: "text-muted-foreground", bg: "bg-muted" },
+    PRESENT: { label: "উপস্থিত", icon: CheckCircle2, color: "text-green-600", bg: "bg-green-500/10" },
+    ABSENT: { label: "অনুপস্থিত", icon: XCircle, color: "text-red-600", bg: "bg-red-500/10" },
+    LATE: { label: "দেরিতে", icon: Clock, color: "text-yellow-600", bg: "bg-yellow-500/10" },
+    EXCUSED: { label: "ছুটিযুক্ত", icon: AlertCircle, color: "text-blue-600", bg: "bg-blue-500/10" },
+    HOLIDAY: { label: "ছুটি", icon: AlertCircle, color: "text-muted-foreground", bg: "bg-muted" },
 };
 
 const INTERACTIVE_STATUSES: Array<{
@@ -43,11 +44,10 @@ const INTERACTIVE_STATUSES: Array<{
 }> = [
     { key: "PRESENT", symbol: "P" },
     { key: "ABSENT", symbol: "A" },
-    { key: "LATE", symbol: "L" },
-    { key: "EXCUSED", symbol: "E" },
 ];
 
 export function AttendanceClient({ classes, selectedClassId, selectedDate, summary }: Props) {
+    const { t } = useT();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [pending, startTransition] = useTransition();
@@ -95,21 +95,31 @@ export function AttendanceClient({ classes, selectedClassId, selectedDate, summa
                 date,
                 entries: students.map(s => ({ studentId: s.id, status: attendanceMap[s.id] ?? "PRESENT" })),
             });
-            if (res.success) toast.success("Attendance saved successfully");
+            if (res.success) toast.success(`${t("attendance")} ${t("save_attendance")}`);
             else toast.error(res.error);
         });
     };
 
+    const openPrintView = () => {
+        if (!classId || !date) {
+            toast.error("Select class and date first");
+            return;
+        }
+
+        const url = `/dashboard/attendance/print?classId=${encodeURIComponent(classId)}&date=${encodeURIComponent(date)}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+    };
+
     const stats = [
-        { label: "Present", value: summary.present, color: "text-green-600", bg: "bg-green-500/10" },
-        { label: "Absent", value: summary.absent, color: "text-red-600", bg: "bg-red-500/10" },
-        { label: "Late", value: summary.late, color: "text-yellow-600", bg: "bg-yellow-500/10" },
-        { label: "Excused", value: summary.excused, color: "text-blue-600", bg: "bg-blue-500/10" },
+        { label: "উপস্থিত", value: summary.present, color: "text-green-600", bg: "bg-green-500/10" },
+        { label: "অনুপস্থিত", value: summary.absent, color: "text-red-600", bg: "bg-red-500/10" },
+        { label: "দেরিতে", value: summary.late, color: "text-yellow-600", bg: "bg-yellow-500/10" },
+        { label: "ছুটিযুক্ত", value: summary.excused, color: "text-blue-600", bg: "bg-blue-500/10" },
     ];
 
     return (
         <>
-            <PageHeader title="Attendance" description="Mark and view daily attendance records" />
+            <PageHeader title={t("attendance")} description="দৈনিক উপস্থিতি নিন ও রেজিস্টার প্রিন্ট করুন" />
 
             {/* Summary Stats */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -129,10 +139,10 @@ export function AttendanceClient({ classes, selectedClassId, selectedDate, summa
 
             {/* Controls */}
             <div className="rounded-xl border border-border bg-card p-4">
-                <h2 className="font-semibold mb-3">Mark Attendance</h2>
+                <h2 className="font-semibold mb-3">{t("mark_attendance")}</h2>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
                     <div className="w-full space-y-1.5 sm:w-auto">
-                        <Label>Class</Label>
+                        <Label>{t("class")}</Label>
                         <Select value={classId} onValueChange={v => { setClassId(v); setLoaded(false); }}>
                             <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Select class" /></SelectTrigger>
                             <SelectContent>
@@ -141,11 +151,11 @@ export function AttendanceClient({ classes, selectedClassId, selectedDate, summa
                         </Select>
                     </div>
                     <div className="w-full space-y-1.5 sm:w-auto">
-                        <Label>Date</Label>
+                        <Label>তারিখ</Label>
                         <Input type="date" value={date} onChange={e => { setDate(e.target.value); setLoaded(false); }} className="w-full sm:w-40" />
                     </div>
                     <Button onClick={loadStudents} disabled={pending || !classId} className="w-full sm:w-auto sm:min-w-36">
-                        <Users className="h-4 w-4 mr-1.5" /> Load Students
+                        <Users className="h-4 w-4 mr-1.5" /> {t("students")}
                     </Button>
                 </div>
             </div>
@@ -161,7 +171,11 @@ export function AttendanceClient({ classes, selectedClassId, selectedDate, summa
                                 </Button>
                             ))}
                             <Button size="sm" onClick={handleSubmit} disabled={pending}>
-                                {pending ? "Saving..." : "Save Attendance"}
+                                {pending ? "Saving..." : t("save_attendance")}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={openPrintView} className="no-print">
+                                <Printer className="h-3.5 w-3.5 mr-1.5" />
+                                {t("print_register")}
                             </Button>
                         </div>
                     </div>

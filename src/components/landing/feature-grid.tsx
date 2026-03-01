@@ -3,9 +3,9 @@ import { featureItems } from "@/components/landing/landing-data";
 export function FeatureGrid() {
   return (
     <section id="features" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <h2 className="text-2xl font-bold text-text sm:text-3xl">Core Product Modules</h2>
+      <h2 className="text-2xl font-bold text-text sm:text-3xl">Govt Primary Core Modules</h2>
       <p className="mt-2 max-w-2xl text-sm text-muted-text sm:text-base">
-        A practical feature set aligned with real school operating workflows.
+        বাস্তব সরকারি প্রাথমিক স্কুল অফিস workflow অনুযায়ী তৈরি।
       </p>
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {featureItems.map((item) => (

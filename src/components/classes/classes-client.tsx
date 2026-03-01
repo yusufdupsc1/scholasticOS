@@ -71,7 +71,16 @@ function ClassForm({ initial, teachers, onSuccess }: { initial?: ClassRow; teach
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                     <Label htmlFor="cl-grade">Grade *</Label>
-                    <Input id="cl-grade" value={form.grade} onChange={e => set("grade", e.target.value)} placeholder="e.g. 10" required />
+                    <Select value={form.grade} onValueChange={(v) => set("grade", v)}>
+                        <SelectTrigger id="cl-grade"><SelectValue placeholder="Select class" /></SelectTrigger>
+                        <SelectContent>
+                            {["1", "2", "3", "4", "5"].map((grade) => (
+                                <SelectItem key={grade} value={grade}>
+                                    Class {grade}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div className="space-y-1.5">
                     <Label htmlFor="cl-sec">Section *</Label>

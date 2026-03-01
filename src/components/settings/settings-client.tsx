@@ -345,7 +345,7 @@ function AcademicTab({ settings, canEdit }: { settings: SettingsRow; canEdit: bo
         </div>
         <div className="space-y-1.5 mt-4">
           <Label htmlFor="cert-footer">Certificate Footer Note</Label>
-          <Input id="cert-footer" value={form.certificateFooter ?? ""} onChange={(e) => set("certificateFooter", e.target.value)} placeholder="Verified by scholaOps Academy" disabled={!canEdit} />
+          <Input id="cert-footer" value={form.certificateFooter ?? ""} onChange={(e) => set("certificateFooter", e.target.value)} placeholder="Verified by Dhadash Academy" disabled={!canEdit} />
         </div>
       </div>
 

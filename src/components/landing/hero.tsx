@@ -11,25 +11,24 @@ export function Hero() {
       <div className="grid items-center gap-10 lg:grid-cols-2">
         <div className="space-y-6">
           <p className="inline-flex items-center rounded-full border border-info-bg bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-info-fg">
-            Precision School Operations
+            Govt. Primary Focus
           </p>
           <h1 className="max-w-xl text-balance text-4xl font-bold leading-tight text-text sm:text-5xl lg:text-6xl">
-            Run your school in one place.
+            সরকারি প্রাথমিক বিদ্যালয়ের (১ম–৫ম) জন্য ডিজিটাল অফিস সিস্টেম।
           </h1>
           <p className="max-w-xl text-pretty text-base text-muted-text sm:text-lg">
-            Attendance, academics, finance, and communication in one role-aware ERP
-            workspace for modern institutions.
+            Attendance register print, ফি রশিদ, নোটিশ ও দৈনিক অফিস কাজ এক জায়গায়।
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <Button asChild className="rounded-full bg-brand-600 px-6 text-white hover:bg-brand-600/90">
               <Link href="/auth/register" prefetch={false}>
-                Start free trial
+                ডেমো দেখুন
                 <ArrowRight className="ml-1 h-4 w-4" aria-hidden="true" />
               </Link>
             </Button>
             <Button asChild variant="outline" className="rounded-full border-ui-border px-6">
               <Link href="/auth/login" prefetch={false}>
-                Access portal
+                শুরু করুন
               </Link>
             </Button>
           </div>
@@ -39,7 +38,7 @@ export function Hero() {
           <div className="overflow-hidden rounded-[var(--radius-card)] border border-ui-border bg-surface shadow-card">
             <Image
               src="/images/hero-dashboard.svg"
-              alt="ScholaOps dashboard preview"
+              alt="Dhadash dashboard preview"
               width={1200}
               height={800}
               priority

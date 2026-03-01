@@ -19,7 +19,7 @@ import { createDomainEvent, publishDomainEvent } from "@/server/events/publish";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ISSUER = "scholaOps";
+const ISSUER = "Dhadash";
 
 export async function GET(req: NextRequest) {
   const auth = await requireApiPermission(req, "security", "read");

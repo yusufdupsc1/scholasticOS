@@ -5,7 +5,7 @@ import { LoginForm } from "@/components/forms/login-form";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign In — scholaOps",
+  title: "Sign In — Dhadash",
   robots: { index: false },
 };
 
@@ -48,9 +48,9 @@ export default async function LoginPage({
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-16">
             <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">S</span>
+              <span className="text-primary-foreground font-bold text-sm">D</span>
             </div>
-            <span className="font-bold text-xl tracking-tight">scholaOps</span>
+            <span className="font-bold text-xl tracking-tight">Dhadash</span>
           </div>
 
           <blockquote className="space-y-3">
@@ -90,9 +90,9 @@ export default async function LoginPage({
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xs">S</span>
+              <span className="text-primary-foreground font-bold text-xs">D</span>
             </div>
-            <span className="font-bold text-lg tracking-tight">scholaOps</span>
+            <span className="font-bold text-lg tracking-tight">Dhadash</span>
           </div>
 
           <div className="space-y-2 mb-8">

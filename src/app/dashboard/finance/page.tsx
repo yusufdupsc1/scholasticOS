@@ -1,12 +1,17 @@
 // src/app/dashboard/finance/page.tsx
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
-import { getFees, getFinanceSummary } from "@/server/actions/finance";
+import {
+  getFees,
+  getFinanceSummary,
+  getGovtPrimaryFeePresets,
+} from "@/server/actions/finance";
 import { db } from "@/lib/db";
 import { FinanceClient } from "@/components/finance/finance-client";
 import { TableSkeleton } from "@/components/ui/skeletons";
 import { safeLoader } from "@/lib/server/safe-loader";
 import type { Metadata } from "next";
+import { isGovtPrimaryModeEnabled, PRIMARY_GRADES } from "@/lib/config";
 
 export const metadata: Metadata = { title: "Finance" };
 export const dynamic = "force-dynamic";
@@ -49,7 +54,13 @@ export default async function FinancePage({ searchParams }: PageProps) {
     "DASHBOARD_FINANCE_STUDENTS",
     () =>
       db.student.findMany({
-        where: { institutionId, status: "ACTIVE" },
+        where: {
+          institutionId,
+          status: "ACTIVE",
+          ...(isGovtPrimaryModeEnabled()
+            ? { class: { grade: { in: [...PRIMARY_GRADES] } } }
+            : {}),
+        },
         select: {
           id: true,
           firstName: true,
@@ -63,6 +74,12 @@ export default async function FinancePage({ searchParams }: PageProps) {
     [],
     { institutionId },
   );
+  const feePresets = await safeLoader(
+    "DASHBOARD_FINANCE_PRESETS",
+    () => getGovtPrimaryFeePresets(),
+    [],
+    { institutionId },
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -71,6 +88,7 @@ export default async function FinancePage({ searchParams }: PageProps) {
           fees={data.fees}
           students={students}
           summary={summary}
+          feePresets={feePresets}
           total={data.total}
           pages={data.pages}
           currentPage={page}

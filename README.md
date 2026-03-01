@@ -1,16 +1,16 @@
-# ScholaOps
+# Dhadash
 
-[![CI / CD](https://github.com/yusufdupsc1/ScholaOps/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufdupsc1/ScholaOps/actions/workflows/ci.yml)
-[![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fyusufdupsc1%2Fscholaops-2496ED?logo=docker)](https://github.com/yusufdupsc1/ScholaOps/pkgs/container/scholaops)
-[![Docker Hub](https://img.shields.io/docker/pulls/yusufdupsc1/scholaops?logo=docker&label=Docker%20Pulls)](https://hub.docker.com/r/yusufdupsc1/scholaops)
+[![CI / CD](https://github.com/yusufdupsc1/Dhadash/actions/workflows/ci.yml/badge.svg)](https://github.com/yusufdupsc1/Dhadash/actions/workflows/ci.yml)
+[![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fyusufdupsc1%2Fdhadash-2496ED?logo=docker)](https://github.com/yusufdupsc1/Dhadash/pkgs/container/dhadash)
+[![Docker Hub](https://img.shields.io/docker/pulls/yusufdupsc1/dhadash?logo=docker&label=Docker%20Pulls)](https://hub.docker.com/r/yusufdupsc1/dhadash)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748)](https://www.prisma.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
-Multi-tenant school operations platform for modern institutions.
+Bangladesh Govt. Primary (Class 1-5) focused school operations platform.
 
-scholaOps is a production-oriented fullstack application that manages academics, attendance, finance, users, and school communications in one system. The codebase is intentionally structured to demonstrate end-to-end engineering ownership: domain modeling, secure auth, operational readiness, and CI/CD automation.
+Dhadash is a production-oriented fullstack application that prioritizes daily office workflows for সরকারি প্রাথমিক বিদ্যালয়: attendance register, fee collection, receipt printing, and communication.
 
 ## Why This Repository Is Strong
 
@@ -23,10 +23,10 @@ scholaOps is a production-oriented fullstack application that manages academics,
 ## Product Scope
 
 - Institution management: organization profile, settings, plans.
-- Academic operations: classes, subjects, timetable, grades, attendance.
+- Academic operations: Class 1-5 workflows, attendance register, timetable, and reports.
 - People and identity: admins, teachers, students, parents, staff.
 - School operations: announcements, events, analytics.
-- Finance and payments: fee tracking and Stripe checkout/webhook integration.
+- Finance and payments: fee tracking, receipt printing, and SSLCommerz integration.
 
 ## System Overview
 
@@ -37,7 +37,7 @@ Client (Next.js App Router)
   -> Prisma ORM
   -> PostgreSQL
 
-Integrations: Stripe, UploadThing, Resend
+Integrations: SSLCommerz, UploadThing, Resend
 ```
 
 For deeper design details, see [Architecture](./docs/ARCHITECTURE.md).
@@ -50,7 +50,7 @@ For deeper design details, see [Architecture](./docs/ARCHITECTURE.md).
 | Backend | Next.js Server Actions, Route Handlers |
 | Data | PostgreSQL, Prisma |
 | Auth | Auth.js (NextAuth v5 beta), JWT sessions |
-| Payments | Stripe |
+| Payments | SSLCommerz (+ optional Stripe fallback) |
 | File Uploads | UploadThing |
 | Testing | Vitest, Playwright |
 | DevOps | GitHub Actions, Docker, Docker Compose |
@@ -66,8 +66,8 @@ For deeper design details, see [Architecture](./docs/ARCHITECTURE.md).
 ### Quick Start
 
 ```bash
-git clone https://github.com/yusufdupsc1/ScholaOps.git
-cd ScholaOps
+git clone https://github.com/yusufdupsc1/Dhadash.git
+cd Dhadash
 pnpm install
 cp .env.example .env.local
 pnpm db:push
@@ -127,24 +127,24 @@ Full runbook: [Deployment Guide](./docs/DEPLOYMENT.md).
 Pull latest from Docker Hub:
 
 ```bash
-docker pull yusufdupsc1/scholaops:latest
+docker pull yusufdupsc1/dhadash:latest
 ```
 
 Pull latest from GHCR:
 
 ```bash
-docker pull ghcr.io/yusufdupsc1/scholaops:latest
+docker pull ghcr.io/yusufdupsc1/dhadash:latest
 ```
 
 Run container:
 
 ```bash
-docker run --name scholaops \
+docker run --name dhadash \
   -p 3000:3000 \
   -e DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB" \
   -e AUTH_SECRET="replace-with-32-plus-char-secret" \
   -e NEXT_PUBLIC_APP_URL="http://localhost:3000" \
-  -d yusufdupsc1/scholaops:latest
+  -d yusufdupsc1/dhadash:latest
 ```
 
 ## API Surface

@@ -14,6 +14,7 @@ import { UpcomingEvents } from "@/components/dashboard/upcoming-events";
 import { ExecutiveCommandCenter } from "@/components/dashboard/executive-command-center";
 import { DEFAULT_LOCALE, DEFAULT_TIMEZONE } from "@/lib/utils";
 import { safeLoader } from "@/lib/server/safe-loader";
+import { isGovtPrimaryModeEnabled } from "@/lib/config";
 import { getDefaultDashboardPath } from "@/lib/role-routing";
 import { Role } from "@prisma/client";
 import type { Metadata } from "next";
@@ -218,9 +219,10 @@ async function getExecutiveData(institutionId: string) {
           process.env.SSLCOMMERZ_STORE_PASSWORD,
       ),
       stripeConfigured: Boolean(
-        process.env.STRIPE_SECRET_KEY &&
+        !isGovtPrimaryModeEnabled() &&
+          process.env.STRIPE_SECRET_KEY &&
           process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-      ),
+      ) || undefined,
     };
   } catch (error) {
     console.error("[DASHBOARD_EXECUTIVE]", error);
@@ -246,7 +248,7 @@ async function getExecutiveData(institutionId: string) {
         subjects: 0,
       },
       sslCommerzConfigured: false,
-      stripeConfigured: false,
+      stripeConfigured: undefined,
     };
   }
 }
@@ -330,7 +332,7 @@ export default async function DashboardPage() {
         subjects: 0,
       },
       sslCommerzConfigured: false,
-      stripeConfigured: false,
+      stripeConfigured: undefined,
     },
     { institutionId },
   );

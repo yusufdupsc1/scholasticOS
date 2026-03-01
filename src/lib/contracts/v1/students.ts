@@ -16,6 +16,11 @@ export const StudentCreateSchema = z.object({
   parentEmail: z.string().email().optional().or(z.literal("")),
   parentPhone: z.string().optional(),
   parentRelation: z.string().optional(),
+  fatherName: z.string().min(1),
+  motherName: z.string().min(1),
+  guardianPhone: z.string().min(1),
+  birthRegNo: z.string().optional(),
+  nidNo: z.string().optional(),
 });
 
 export const StudentListFiltersSchema = z.object({

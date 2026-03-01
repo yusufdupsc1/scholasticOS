@@ -3,7 +3,7 @@ import { testimonialItems } from "@/components/landing/landing-data";
 export function Testimonials() {
   return (
     <section id="testimonials" className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <h2 className="text-2xl font-bold text-text sm:text-3xl">What Schools Say</h2>
+      <h2 className="text-2xl font-bold text-text sm:text-3xl">Pilot School Feedback</h2>
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         {testimonialItems.map((item) => (
           <figure

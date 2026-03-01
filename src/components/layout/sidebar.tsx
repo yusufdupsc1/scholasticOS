@@ -36,6 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useT } from "@/lib/i18n/client";
 
 interface SidebarProps {
   session: Session;
@@ -183,6 +184,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
 ];
 
 export function Sidebar({ session }: SidebarProps) {
+  const { t } = useT();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const userRole = (session.user as any)?.role ?? "";
@@ -227,6 +229,29 @@ export function Sidebar({ session }: SidebarProps) {
     return next;
   })();
 
+  const sectionLabelMap: Record<string, string> = {
+    Overview: "overview",
+    Academic: "academic",
+    Administration: "administration",
+    System: "system",
+  };
+
+  const itemLabelMap: Record<string, string> = {
+    Dashboard: "dashboard",
+    Students: "students",
+    Teachers: "teachers",
+    Attendance: "attendance",
+    Finance: "fees",
+    Grades: "results",
+    Institution: "institution",
+    Classes: "classes",
+    Subjects: "subjects",
+    Announcements: "notices",
+    Class: "class",
+  };
+
+  const localize = (label: string) => t(itemLabelMap[label] ?? label.toLowerCase()) || label;
+
   return (
     <TooltipProvider delayDuration={0}>
       <aside className="hidden h-svh w-[230px] flex-shrink-0 flex-col border-r border-border/80 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:flex xl:w-[250px]">
@@ -236,7 +261,7 @@ export function Sidebar({ session }: SidebarProps) {
             <ShieldCheck className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="font-bold text-sm tracking-tight truncate">
-            scholaOps
+            Dhadash
           </span>
           <Badge variant="outline" className="ml-auto text-[10px] font-mono py-0">
             v1.0
@@ -250,7 +275,7 @@ export function Sidebar({ session }: SidebarProps) {
               <School className="h-3 w-3 text-accent" />
             </div>
             <span className="text-xs font-medium truncate text-foreground/80">
-              {(session.user as any)?.institutionName ?? "Institution"}
+              {(session.user as any)?.institutionName ?? t("institution")}
             </span>
             <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto flex-shrink-0" />
           </div>
@@ -271,7 +296,7 @@ export function Sidebar({ session }: SidebarProps) {
             return (
               <div key={section.label}>
                 <p className="px-2 mb-1 text-[10px] font-semibold tracking-widest uppercase text-muted-foreground/60">
-                  {section.label}
+                  {t(sectionLabelMap[section.label] ?? section.label.toLowerCase())}
                 </p>
                 <div className="space-y-0.5">
                   {visibleItems.map((item) => {
@@ -305,7 +330,7 @@ export function Sidebar({ session }: SidebarProps) {
                                 : "text-muted-foreground"
                             )}
                           />
-                          <span className="truncate">{item.label}</span>
+                          <span className="truncate">{localize(item.label)}</span>
                           {item.badge && (
                             <span className="ml-auto font-mono text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">
                               {item.badge}
@@ -343,7 +368,7 @@ export function Sidebar({ session }: SidebarProps) {
                               active ? "text-primary" : "text-muted-foreground",
                             )}
                           />
-                          <span className="truncate">{item.label}</span>
+                          <span className="truncate">{localize(item.label)}</span>
                           <ChevronDown
                             className={cn(
                               "ml-auto h-3.5 w-3.5 transition-transform",
@@ -367,7 +392,7 @@ export function Sidebar({ session }: SidebarProps) {
                                 )}
                               >
                                 <FileText className="mr-1.5 h-3.5 w-3.5" />
-                                {child.label}
+                                {localize(child.label)}
                               </Link>
                             ))}
                           </div>

@@ -1,6 +1,6 @@
 # Architecture
 
-This document captures the high-level design and tradeoffs in scholaOps.
+This document captures the high-level design and tradeoffs in Dhadash.
 
 ## 1) Core Principles
 

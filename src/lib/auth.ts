@@ -15,8 +15,8 @@ const AUTH_SECRETS = [
 const ALLOW_DEMO_LOGIN = process.env.ALLOW_DEMO_LOGIN !== "false";
 
 const DEMO_INSTITUTION = {
-  slug: "scholaops-demo",
-  name: "scholaOps Academy",
+  slug: "dhadash-demo",
+  name: "Dhadash Academy",
   email: "admin@school.edu",
   city: "Dhaka",
   country: "BD",

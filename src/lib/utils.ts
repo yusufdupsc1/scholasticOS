@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-export const DEFAULT_LOCALE = "en-BD";
+export const DEFAULT_LOCALE = "bn-BD";
 export const DEFAULT_TIMEZONE = "Asia/Dhaka";
 export const DEFAULT_CURRENCY = "BDT";
 

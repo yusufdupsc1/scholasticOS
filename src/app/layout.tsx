@@ -1,10 +1,12 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { cookies } from "next/headers";
 import "@/styles/globals.css";
 import { OfflineBanner } from "@/components/pwa/offline-banner";
 import { ServiceWorkerRegistration } from "@/components/pwa/sw-register";
 import { TabLoadingIndicator } from "@/components/layout/tab-loading-indicator";
+import { normalizeLocale } from "@/lib/i18n/getDict";
 
 const geistSans = localFont({
   src: "../assets/fonts/GeistLike-Regular.ttf",
@@ -20,24 +22,24 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://app.scholaops.com",
+    process.env.NEXT_PUBLIC_APP_URL || "https://app.dhadash.com",
   ),
   manifest: "/manifest.webmanifest",
   title: {
-    default: "scholaOps — Precision School Management",
-    template: "%s | scholaOps",
+    default: "Dhadash — Govt. Primary School Operations",
+    template: "%s | Dhadash",
   },
   description:
-    "Professional-grade school operations platform. Precision engineered for administrative efficiency and institutional excellence.",
+    "সরকারি প্রাথমিক বিদ্যালয় (১ম–৫ম শ্রেণি) এর জন্য attendance, fee ও office workflow platform.",
   keywords: [
-    "school management system",
-    "education ERP",
-    "scholaOps",
-    "academic administration",
-    "school operations",
+    "govt primary school software",
+    "bangladesh school management",
+    "dhadash",
+    "attendance register print",
+    "fee receipt print",
   ],
-  authors: [{ name: "scholaOps" }],
-  creator: "scholaOps",
+  authors: [{ name: "Dhadash" }],
+  creator: "Dhadash",
   icons: {
     icon: [
       { url: "/icons/favicon-16.png", sizes: "16x16", type: "image/png" },
@@ -50,19 +52,19 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "scholaOps",
+    title: "Dhadash",
   },
   openGraph: {
     type: "website",
-    locale: "en_BD",
-    siteName: "scholaOps",
-    title: "scholaOps — Modern Education Infrastructure",
-    description: "The professional operations platform for forward-thinking schools.",
+    locale: "bn_BD",
+    siteName: "Dhadash",
+    title: "Dhadash — সরকারি প্রাথমিক বিদ্যালয়ের ডিজিটাল অফিস সিস্টেম",
+    description: "Attendance register, fee receipt ও নোটিশ workflow এক প্ল্যাটফর্মে।",
   },
   twitter: {
     card: "summary_large_image",
-    title: "scholaOps",
-    description: "The professional operations platform for forward-thinking schools.",
+    title: "Dhadash",
+    description: "Govt. Primary schools (Class 1–5) এর জন্য Bangladesh-first platform.",
   },
   robots: {
     index: true,
@@ -79,18 +81,22 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const cookieStore = await cookies();
+  const locale = normalizeLocale(cookieStore.get("locale")?.value);
+  const isBangla = locale === "bn";
+
   return (
     <html
-      lang="en"
+      lang={isBangla ? "bn" : "en"}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
-      <body className="font-sans antialiased">
+      <body className={`${isBangla ? "font-bn" : "font-sans"} antialiased`}>
         <ServiceWorkerRegistration />
         <TabLoadingIndicator />
         <OfflineBanner />

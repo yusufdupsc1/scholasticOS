@@ -55,8 +55,8 @@ describe("Classes Server Actions", () => {
 
   describe("createClass", () => {
     const validFormData = {
-      name: "Grade 9A",
-      grade: "9",
+      name: "Class 5A",
+      grade: "5",
       section: "A",
       capacity: 30,
       roomNumber: "Room 101",
@@ -84,7 +84,7 @@ describe("Classes Server Actions", () => {
       // Arrange
       (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: "existing-class",
-        grade: "9",
+        grade: "5",
         section: "A",
       });
 
@@ -125,8 +125,8 @@ describe("Classes Server Actions", () => {
   describe("updateClass", () => {
     const classId = "class-123";
     const updateData = {
-      name: "Grade 9B",
-      grade: "9",
+      name: "Class 4B",
+      grade: "4",
       section: "B",
       capacity: 25,
       academicYear: "2024-2025",
@@ -202,8 +202,8 @@ describe("Classes Server Actions", () => {
       const mockClasses = [
         {
           id: "1",
-          name: "Grade 9A",
-          grade: "9",
+          name: "Class 5A",
+          grade: "5",
           section: "A",
           capacity: 30,
           academicYear: "2024-2025",
@@ -212,8 +212,8 @@ describe("Classes Server Actions", () => {
         },
         {
           id: "2",
-          name: "Grade 9B",
-          grade: "9",
+          name: "Class 4B",
+          grade: "4",
           section: "B",
           capacity: 30,
           academicYear: "2024-2025",
@@ -231,7 +231,7 @@ describe("Classes Server Actions", () => {
       expect(result.classes).toHaveLength(2);
       expect(result.classes[0]).toMatchObject({
         id: "1",
-        name: "Grade 9A",
+        name: "Class 5A",
         _count: { students: 20 },
       });
       expect(result.total).toBe(2);

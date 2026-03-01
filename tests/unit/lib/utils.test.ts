@@ -30,38 +30,40 @@ describe("Utility Functions", () => {
 
   describe("formatCurrency", () => {
     it("should format number as BDT by default", () => {
-      expect(formatCurrency(1000)).toBe("BDT\u00a01,000");
+      expect(formatCurrency(1000)).toContain("৳");
     });
 
     it("should format string number", () => {
-      expect(formatCurrency("1500.50")).toBe("BDT\u00a01,500.5");
+      const value = formatCurrency("1500.50");
+      expect(value).toContain("৳");
+      expect(value).toMatch(/[০-৯]/);
     });
 
     it("should handle different currencies", () => {
-      expect(formatCurrency(1000, "EUR")).toContain("1,000");
+      expect(formatCurrency(1000, "EUR")).toContain("€");
     });
 
     it("should handle zero", () => {
-      expect(formatCurrency(0)).toBe("BDT\u00a00");
+      expect(formatCurrency(0)).toContain("০");
     });
   });
 
   describe("formatDate", () => {
     it("should format date object", () => {
       const result = formatDate(new Date("2024-01-15"));
-      expect(result).toContain("Jan");
-      expect(result).toContain("15");
-      expect(result).toContain("2024");
+      expect(result).toContain("১৫");
+      expect(result).toContain("২০২৪");
     });
 
     it("should format date string", () => {
       const result = formatDate("2024-01-15");
-      expect(result).toContain("Jan");
+      expect(result).toContain("২০২৪");
     });
 
     it("should accept custom options", () => {
       const result = formatDate(new Date("2024-01-15"), { day: "numeric" });
-      expect(result).toBe("Jan 15, 2024");
+      expect(result).toContain("১৫");
+      expect(result).toContain("২০২৪");
     });
   });
 

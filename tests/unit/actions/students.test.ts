@@ -25,6 +25,9 @@ vi.mock("@/lib/db", () => ({
       findMany: vi.fn(),
       count: vi.fn(),
     },
+    class: {
+      findFirst: vi.fn(),
+    },
     parent: {
       create: vi.fn(),
     },
@@ -66,6 +69,10 @@ describe("Students Server Actions", () => {
 
   it("creates a student and provisions student user when email exists", async () => {
     (db.student.count as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+    (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "class-1",
+      grade: "1",
+    });
     (db.student.create as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "student-1",
       studentId: "STU-2026-0001",
@@ -78,6 +85,9 @@ describe("Students Server Actions", () => {
       gender: "MALE",
       dateOfBirth: "2010-01-15",
       classId: "class-1",
+      fatherName: "Karim",
+      motherName: "Rokeya",
+      guardianPhone: "01710000000",
     });
 
     expect(result.success).toBe(true);
@@ -99,6 +109,10 @@ describe("Students Server Actions", () => {
 
   it("updates existing student", async () => {
     (db.student.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "student-1" });
+    (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "class-1",
+      grade: "1",
+    });
 
     const result = await updateStudent("student-1", {
       firstName: "Hasib",
@@ -107,6 +121,9 @@ describe("Students Server Actions", () => {
       gender: "MALE",
       dateOfBirth: "2010-01-15",
       classId: "class-1",
+      fatherName: "Karim",
+      motherName: "Rokeya",
+      guardianPhone: "01710000000",
     });
 
     expect(result.success).toBe(true);

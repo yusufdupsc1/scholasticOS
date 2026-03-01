@@ -16,6 +16,14 @@ const envSchema = z.object({
   // App
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  GOVT_PRIMARY_MODE: z
+    .union([z.literal("true"), z.literal("false")])
+    .default("true")
+    .transform((value) => value === "true"),
+  NEXT_PUBLIC_GOVT_PRIMARY_MODE: z
+    .union([z.literal("true"), z.literal("false")])
+    .default("true")
+    .transform((value) => value === "true"),
   CRON_SECRET: z.string().optional(),
   ENABLE_AI_ASSIST: z
     .union([z.literal("true"), z.literal("false")])

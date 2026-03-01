@@ -8,6 +8,9 @@ import {
   isPrivilegedRole,
 } from "@/lib/role-routing";
 
+const LOCALE_COOKIE = "locale";
+const SUPPORTED_LOCALES = ["bn", "en"] as const;
+
 const PUBLIC_ROUTES = [
   "/auth/login",
   "/auth/register",
@@ -42,9 +45,31 @@ const SESSION_COOKIE_CANDIDATES = [
   "next-auth.session-token",
 ];
 
+function resolveLocale(req: NextRequest) {
+  const cookieLocale = req.cookies.get(LOCALE_COOKIE)?.value?.toLowerCase();
+  if (cookieLocale && SUPPORTED_LOCALES.includes(cookieLocale as "bn" | "en")) {
+    return cookieLocale as "bn" | "en";
+  }
+
+  const acceptLanguage = req.headers.get("accept-language")?.toLowerCase() ?? "";
+  if (acceptLanguage.includes("bn")) return "bn";
+  return "en";
+}
+
+function withLocaleCookie(response: NextResponse, locale: "bn" | "en") {
+  response.cookies.set(LOCALE_COOKIE, locale, {
+    httpOnly: false,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 30,
+    path: "/",
+  });
+  return response;
+}
+
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID();
+  const locale = resolveLocale(req);
 
   // 1. Allow static files and Next.js internals
   if (
@@ -53,7 +78,7 @@ export default async function middleware(req: NextRequest) {
     pathname.includes(".") ||
     pathname.startsWith("/favicon")
   ) {
-    return NextResponse.next();
+    return withLocaleCookie(NextResponse.next(), locale);
   }
 
   // 2. Allow public routes
@@ -61,7 +86,7 @@ export default async function middleware(req: NextRequest) {
   if (isPublic) {
     const response = NextResponse.next();
     response.headers.set("x-request-id", requestId);
-    return response;
+    return withLocaleCookie(response, locale);
   }
 
   // 3. Get session token (Edge-compatible)
@@ -111,11 +136,11 @@ export default async function middleware(req: NextRequest) {
     if (pathname.startsWith("/dashboard")) {
       const loginUrl = new URL("/auth/login", req.url);
       loginUrl.searchParams.set("callbackUrl", encodeURIComponent(pathname));
-      return NextResponse.redirect(loginUrl);
+      return withLocaleCookie(NextResponse.redirect(loginUrl), locale);
     }
     const response = NextResponse.next();
     response.headers.set("x-request-id", requestId);
-    return response;
+    return withLocaleCookie(response, locale);
   }
 
   if (AUTH_DEBUG) {
@@ -137,7 +162,10 @@ export default async function middleware(req: NextRequest) {
   const isAdmin = isPrivilegedRole(userRole);
 
   if (isAdminRoute && !isAdmin) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return withLocaleCookie(
+      NextResponse.redirect(new URL("/dashboard", req.url)),
+      locale,
+    );
   }
 
   if (pathname.startsWith("/dashboard")) {
@@ -146,8 +174,9 @@ export default async function middleware(req: NextRequest) {
       pathname === prefix || pathname.startsWith(`${prefix}/`)
     );
     if (!isAllowed) {
-      return NextResponse.redirect(
-        new URL(getDefaultDashboardPath(userRole), req.url),
+      return withLocaleCookie(
+        NextResponse.redirect(new URL(getDefaultDashboardPath(userRole), req.url)),
+        locale,
       );
     }
   }
@@ -168,7 +197,7 @@ export default async function middleware(req: NextRequest) {
     response.headers.set("x-institution-name", token.institutionName as string);
   }
 
-  return response;
+  return withLocaleCookie(response, locale);
 }
 
 

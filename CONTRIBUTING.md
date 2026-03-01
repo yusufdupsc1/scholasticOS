@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in improving scholaOps.
+Thanks for your interest in improving Dhadash.
 
 ## 1) Setup
 

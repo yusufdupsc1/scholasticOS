@@ -7,9 +7,9 @@ import { pricingTiers } from "@/components/landing/landing-data";
 export function PricingPlans() {
   return (
     <section id="pricing" className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-      <h2 className="text-2xl font-bold text-text sm:text-3xl">Simple School Pricing</h2>
+      <h2 className="text-2xl font-bold text-text sm:text-3xl">Simple Govt Primary Pricing</h2>
       <p className="mt-2 max-w-2xl text-sm text-muted-text sm:text-base">
-        Start with a pilot and scale when your institution is ready.
+        Pilot দিয়ে শুরু করুন, ব্যবহার প্রমাণ হলে স্কুল-লেভেল rollout করুন।
       </p>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">

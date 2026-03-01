@@ -302,6 +302,11 @@ model Student {
   address     String?
   city        String?
   country     String?
+  fatherName  String?
+  motherName  String?
+  guardianPhone String?
+  birthRegNo  String?
+  nidNo       String?
 
   // Academic
   enrollmentDate DateTime      @default(now())

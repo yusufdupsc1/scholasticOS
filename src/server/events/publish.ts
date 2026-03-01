@@ -7,19 +7,19 @@ type EventHandler = (event: DomainEvent) => void;
 const MAX_RECENT_EVENTS = 250;
 
 const globalStore = globalThis as typeof globalThis & {
-  __scholaopsEventBus?: EventEmitter;
-  __scholaopsEventHistory?: DomainEvent[];
+  __dhadashEventBus?: EventEmitter;
+  __dhadashEventHistory?: DomainEvent[];
 };
 
-const bus = globalStore.__scholaopsEventBus ?? new EventEmitter();
-const history = globalStore.__scholaopsEventHistory ?? [];
+const bus = globalStore.__dhadashEventBus ?? new EventEmitter();
+const history = globalStore.__dhadashEventHistory ?? [];
 
-if (!globalStore.__scholaopsEventBus) {
+if (!globalStore.__dhadashEventBus) {
   bus.setMaxListeners(200);
-  globalStore.__scholaopsEventBus = bus;
+  globalStore.__dhadashEventBus = bus;
 }
-if (!globalStore.__scholaopsEventHistory) {
-  globalStore.__scholaopsEventHistory = history;
+if (!globalStore.__dhadashEventHistory) {
+  globalStore.__dhadashEventHistory = history;
 }
 
 export function createDomainEvent<T extends DomainEventType>(

@@ -27,9 +27,7 @@ export const FeeCreateSchema = z.object({
 export const PaymentCreateSchema = z.object({
   feeId: z.string().min(1),
   amount: z.coerce.number().min(0.01),
-  method: z
-    .enum(["CASH", "CARD", "BANK_TRANSFER", "CHEQUE", "ONLINE", "STRIPE"])
-    .default("CASH"),
+  method: z.enum(["CASH", "ONLINE"]).default("CASH"),
   transactionRef: z.string().optional(),
   notes: z.string().optional(),
 });

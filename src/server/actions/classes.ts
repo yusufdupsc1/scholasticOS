@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { asPlainArray, toNumber } from "@/lib/server/serializers";
+import { isGovtPrimaryModeEnabled, isPrimaryGrade, PRIMARY_GRADES } from "@/lib/config";
 
 const ClassSchema = z.object({
   name: z.string().min(1, "Class name is required"),
@@ -74,6 +75,9 @@ export async function createClass(
     }
 
     const data = parsed.data;
+    if (isGovtPrimaryModeEnabled() && !isPrimaryGrade(data.grade)) {
+      return { success: false, error: "Only Class 1 to Class 5 is allowed in Govt Primary mode." };
+    }
 
     const existing = await db.class.findFirst({
       where: {
@@ -148,6 +152,9 @@ export async function updateClass(
     if (!existing) return { success: false, error: "Class not found" };
 
     const data = parsed.data;
+    if (isGovtPrimaryModeEnabled() && !isPrimaryGrade(data.grade)) {
+      return { success: false, error: "Only Class 1 to Class 5 is allowed in Govt Primary mode." };
+    }
 
     await db.$transaction(async (tx) => {
       await tx.class.update({
@@ -271,6 +278,7 @@ export async function getClasses({
   const where: Record<string, unknown> = {
     institutionId,
     isActive: true,
+    ...(isGovtPrimaryModeEnabled() ? { grade: { in: [...PRIMARY_GRADES] } } : {}),
     ...(academicYear && { academicYear }),
     ...(search && {
       OR: [

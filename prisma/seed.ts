@@ -45,18 +45,18 @@ function makeSeedPdfDataUri(title: string, studentName: string) {
 }
 
 async function main() {
-  console.log("🌱 Seeding scholaOps database...\n");
+  console.log("🌱 Seeding Dhadash database...\n");
   const enableDemoPlaceholders =
     (process.env.ENABLE_DEMO_PLACEHOLDERS ?? "false") === "true";
   const seedDemoStudents = (process.env.SEED_DEMO_STUDENTS ?? "false") === "true";
 
   // ── Institution ──────────────────────────────
   const institution = await db.institution.upsert({
-    where: { slug: "scholaops-demo" },
+    where: { slug: "dhadash-demo" },
     update: {},
     create: {
-      name: "scholaOps Academy",
-      slug: "scholaops-demo",
+      name: "Dhadash Govt Primary Demo School",
+      slug: "dhadash-demo",
       email: "admin@school.edu",
       phone: "+8801700000000",
       address: "123 Innovation Way",
@@ -82,7 +82,7 @@ async function main() {
       signatoryTitle: "Principal",
       coSignatoryName: "Ayesha Sultana",
       coSignatoryTitle: "Class Teacher",
-      certificateFooter: "Issued by scholaOps Academy, Dhaka",
+      certificateFooter: "Issued by Dhadash Govt Primary Demo School, Dhaka",
     },
   });
 
@@ -154,7 +154,6 @@ async function main() {
 
   // ── Classes ──────────────────────────────────
   const classData = [
-    { name: "Pre-Primary", grade: "PP", section: "A" },
     { name: "Class One", grade: "1", section: "A" },
     { name: "Class Two", grade: "2", section: "A" },
     { name: "Class Three", grade: "3", section: "A" },
@@ -273,6 +272,10 @@ async function main() {
             dateOfBirth: new Date(2006 + (c % 4), s % 12, (s % 28) + 1),
             status: StudentStatus.ACTIVE,
             classId: classes[c].id,
+            fatherName: `Md. ${lastName}`,
+            motherName: `Mrs. ${lastName}`,
+            guardianPhone: `017${String(10000000 + studentCount).slice(-8)}`,
+            birthRegNo: `BRN${String(1000000000 + studentCount)}`,
             institutionId: institution.id,
           },
         });
@@ -360,9 +363,18 @@ async function main() {
       const status =
         rand > 0.7 ? FeeStatus.PAID : rand > 0.4 ? FeeStatus.PARTIAL : FeeStatus.UNPAID;
 
+      const presetTitles = [
+        "মাসিক ফি",
+        "ভর্তি ফি",
+        "পরীক্ষা ফি",
+        "সেশন চার্জ",
+        "কোচিং ফি",
+      ];
+      const feeTitle = presetTitles[Math.floor(Math.random() * presetTitles.length)];
+
       await db.fee.create({
         data: {
-          title: "Tuition Fee — Term 1 2024",
+          title: feeTitle,
           amount: 1500,
           dueDate: new Date("2024-09-15"),
           term: "Term 1",
@@ -408,7 +420,7 @@ async function main() {
   console.log(`✅ Announcements seeded`);
 
   // ── Demo placeholders: progress + certificates ──
-  if (institution.slug === "scholaops-demo" && enableDemoPlaceholders) {
+  if (institution.slug === "dhadash-demo" && enableDemoPlaceholders) {
     const demoStudents = await db.student.findMany({
       where: { institutionId: institution.id, status: StudentStatus.ACTIVE },
       include: { class: true },

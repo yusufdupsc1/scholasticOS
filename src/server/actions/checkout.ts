@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import Stripe from "stripe";
 import { isPrivilegedRole } from "@/lib/role-routing";
+import { isGovtPrimaryModeEnabled } from "@/lib/config";
 
 const getStripe = () => {
   if (!env.STRIPE_SECRET_KEY) {
@@ -21,7 +22,7 @@ const PaymentGatewaySchema = z.enum(["STRIPE", "SSLCOMMERZ"]);
 
 const CreateCheckoutSchema = z.object({
   feeId: z.string().min(1, "Fee ID is required"),
-  gateway: PaymentGatewaySchema.default("STRIPE"),
+  gateway: PaymentGatewaySchema.default("SSLCOMMERZ"),
   currency: z.string().optional(),
 });
 
@@ -296,7 +297,8 @@ export async function createCheckoutSession(
 ): Promise<ActionResult<{ sessionId: string }>> {
   try {
     const feeId = typeof payload === "string" ? payload : payload.feeId;
-    const gateway = typeof payload === "string" ? "STRIPE" : payload.gateway ?? "STRIPE";
+    const gateway =
+      typeof payload === "string" ? "SSLCOMMERZ" : payload.gateway ?? "SSLCOMMERZ";
     const requestedCurrency = typeof payload === "string" ? undefined : payload.currency;
 
     const parsed = CreateCheckoutSchema.safeParse({
@@ -308,6 +310,13 @@ export async function createCheckoutSession(
       return {
         success: false,
         error: parsed.error.errors[0]?.message || "Invalid fee ID",
+      };
+    }
+
+    if (isGovtPrimaryModeEnabled() && parsed.data.gateway !== "SSLCOMMERZ") {
+      return {
+        success: false,
+        error: "Only SSLCommerz checkout is enabled in Govt Primary mode.",
       };
     }
 

@@ -31,6 +31,11 @@ type Student = {
   address?: string | null;
   city?: string | null;
   country?: string | null;
+  fatherName?: string | null;
+  motherName?: string | null;
+  guardianPhone?: string | null;
+  birthRegNo?: string | null;
+  nidNo?: string | null;
   classId?: string | null;
   status: string;
   createdAt: string | null;
@@ -68,6 +73,11 @@ type EditState = {
   address: string;
   city: string;
   country: string;
+  fatherName: string;
+  motherName: string;
+  guardianPhone: string;
+  birthRegNo: string;
+  nidNo: string;
 };
 
 type CreateState = {
@@ -86,6 +96,11 @@ type CreateState = {
   parentEmail: string;
   parentPhone: string;
   parentRelation: string;
+  fatherName: string;
+  motherName: string;
+  guardianPhone: string;
+  birthRegNo: string;
+  nidNo: string;
 };
 
 function toDateInputValue(value?: string | null) {
@@ -110,6 +125,11 @@ function getInitialCreateState(): CreateState {
     parentEmail: "",
     parentPhone: "",
     parentRelation: "Guardian",
+    fatherName: "",
+    motherName: "",
+    guardianPhone: "",
+    birthRegNo: "",
+    nidNo: "",
   };
 }
 
@@ -139,6 +159,11 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
       address: student.address ?? "",
       city: student.city ?? "",
       country: student.country ?? "",
+      fatherName: student.fatherName ?? "",
+      motherName: student.motherName ?? "",
+      guardianPhone: student.guardianPhone ?? "",
+      birthRegNo: student.birthRegNo ?? "",
+      nidNo: student.nidNo ?? "",
     });
   }
 
@@ -155,8 +180,14 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
   }
 
   async function handleCreate() {
-    if (!creating.firstName.trim() || !creating.lastName.trim()) {
-      toast.error("First name and last name are required");
+    if (
+      !creating.firstName.trim() ||
+      !creating.lastName.trim() ||
+      !creating.fatherName.trim() ||
+      !creating.motherName.trim() ||
+      !creating.guardianPhone.trim()
+    ) {
+      toast.error("First/Last name, Father name, Mother name and Guardian phone are required");
       return;
     }
 
@@ -181,6 +212,11 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
             parentEmail: creating.parentEmail.trim(),
             parentPhone: creating.parentPhone.trim(),
             parentRelation: creating.parentRelation.trim(),
+            fatherName: creating.fatherName.trim(),
+            motherName: creating.motherName.trim(),
+            guardianPhone: creating.guardianPhone.trim(),
+            birthRegNo: creating.birthRegNo.trim(),
+            nidNo: creating.nidNo.trim(),
           }),
         });
 
@@ -215,6 +251,16 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
 
   async function handleSave() {
     if (!editing) return;
+    if (
+      !editing.firstName.trim() ||
+      !editing.lastName.trim() ||
+      !editing.fatherName.trim() ||
+      !editing.motherName.trim() ||
+      !editing.guardianPhone.trim()
+    ) {
+      toast.error("First/Last name, Father name, Mother name and Guardian phone are required");
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -232,6 +278,11 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
             address: editing.address,
             city: editing.city,
             country: editing.country,
+            fatherName: editing.fatherName,
+            motherName: editing.motherName,
+            guardianPhone: editing.guardianPhone,
+            birthRegNo: editing.birthRegNo,
+            nidNo: editing.nidNo,
           }),
         });
 
@@ -470,6 +521,26 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
                 <Input id="create-country" value={creating.country} onChange={(e) => updateCreate("country", e.target.value)} />
               </div>
               <div className="space-y-1.5">
+                <Label htmlFor="create-fatherName">Father Name *</Label>
+                <Input id="create-fatherName" value={creating.fatherName} onChange={(e) => updateCreate("fatherName", e.target.value)} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-motherName">Mother Name *</Label>
+                <Input id="create-motherName" value={creating.motherName} onChange={(e) => updateCreate("motherName", e.target.value)} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-guardianPhone">Guardian Phone *</Label>
+                <Input id="create-guardianPhone" value={creating.guardianPhone} onChange={(e) => updateCreate("guardianPhone", e.target.value)} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-birthRegNo">Birth Reg No</Label>
+                <Input id="create-birthRegNo" value={creating.birthRegNo} onChange={(e) => updateCreate("birthRegNo", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="create-nidNo">NID (optional)</Label>
+                <Input id="create-nidNo" value={creating.nidNo} onChange={(e) => updateCreate("nidNo", e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="create-parentFirstName">Guardian First Name</Label>
                 <Input id="create-parentFirstName" value={creating.parentFirstName} onChange={(e) => updateCreate("parentFirstName", e.target.value)} />
               </div>
@@ -574,6 +645,26 @@ export function StudentsTable({ students, classes, total, pages, currentPage }: 
                 <div className="space-y-1.5">
                   <Label htmlFor="edit-country">Country</Label>
                   <Input id="edit-country" value={editing.country} onChange={(e) => updateEdit("country", e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-fatherName">Father Name *</Label>
+                  <Input id="edit-fatherName" value={editing.fatherName} onChange={(e) => updateEdit("fatherName", e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-motherName">Mother Name *</Label>
+                  <Input id="edit-motherName" value={editing.motherName} onChange={(e) => updateEdit("motherName", e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-guardianPhone">Guardian Phone *</Label>
+                  <Input id="edit-guardianPhone" value={editing.guardianPhone} onChange={(e) => updateEdit("guardianPhone", e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-birthRegNo">Birth Reg No</Label>
+                  <Input id="edit-birthRegNo" value={editing.birthRegNo} onChange={(e) => updateEdit("birthRegNo", e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-nidNo">NID (optional)</Label>
+                  <Input id="edit-nidNo" value={editing.nidNo} onChange={(e) => updateEdit("nidNo", e.target.value)} />
                 </div>
               </div>
 

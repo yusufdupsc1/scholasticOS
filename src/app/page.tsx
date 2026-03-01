@@ -11,9 +11,9 @@ import { Testimonials } from "@/components/landing/testimonials";
 import { TrustStrip } from "@/components/landing/trust-strip";
 
 export const metadata: Metadata = {
-  title: "scholaOps — Precision School Management",
+  title: "Dhadash — Govt. Primary School Operations",
   description:
-    "Role-aware school ERP for attendance, academics, finance, and communication.",
+    "সরকারি প্রাথমিক বিদ্যালয় (১ম–৫ম শ্রেণি) এর জন্য attendance, fee, notice এবং print workflow.",
   alternates: {
     canonical: "/",
   },

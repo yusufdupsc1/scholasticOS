@@ -1,6 +1,6 @@
-const STATIC_CACHE = "scholaops-static-v2";
-const RUNTIME_CACHE = "scholaops-runtime-v1";
-const DASHBOARD_CACHE = "scholaops-dashboard-v1";
+const STATIC_CACHE = "dhadash-static-v2";
+const RUNTIME_CACHE = "dhadash-runtime-v1";
+const DASHBOARD_CACHE = "dhadash-dashboard-v1";
 
 const STATIC_URLS = [
   "/",

@@ -24,13 +24,13 @@ describe("totp", () => {
   it("builds valid otpauth URI", () => {
     const secret = generateTotpSecret();
     const uri = createOtpAuthUri({
-      issuer: "scholaOps",
+      issuer: "Dhadash",
       accountName: "admin@school.edu",
       secret,
     });
 
     expect(uri.startsWith("otpauth://totp/")).toBe(true);
-    expect(uri).toContain("issuer=scholaOps");
+    expect(uri).toContain("issuer=Dhadash");
     expect(uri).toContain(secret);
   });
 });

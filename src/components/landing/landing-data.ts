@@ -17,94 +17,90 @@ export type FeatureItem = {
 
 export const featureItems: FeatureItem[] = [
   {
-    title: "Unified Directory",
+    title: "Attendance Register + Print",
     description:
-      "Manage students, guardians, and staff with one source of truth for every profile.",
-    icon: Users,
-  },
-  {
-    title: "Attendance + Alerts",
-    description:
-      "Track daily presence and trigger timely follow-ups for absences and late arrivals.",
+      "দৈনিক উপস্থিতি নিন, এক ক্লিকে A4 রেজিস্টার প্রিন্ট করুন।",
     icon: CalendarCheck2,
   },
   {
-    title: "Finance Operations",
+    title: "Monthly Fee & Receipt",
     description:
-      "Issue invoices, record payments, and monitor outstanding balances in real time.",
+      "মাসিক ফি, ভর্তি ফি, পরীক্ষা ফি থেকে দ্রুত বিল তৈরি ও রশিদ প্রিন্ট।",
     icon: CreditCard,
   },
   {
-    title: "Academic Core",
+    title: "Guardian-ready Profiles",
     description:
-      "Run classes, gradebooks, and report workflows with clean teacher-first UX.",
+      "Father/Mother/Guardian Phone সহ সরকারি প্রাথমিক অফিস উপযোগী তথ্য কাঠামো।",
+    icon: Users,
+  },
+  {
+    title: "Class 1-5 Focus",
+    description:
+      "শুধু ১ম–৫ম শ্রেণির workflow; জটিলতা ছাড়াই দ্রুত adoption.",
     icon: BookOpen,
   },
   {
-    title: "Decision Analytics",
+    title: "SMS Notice Workflow",
     description:
-      "Turn operational data into weekly insights for principals and administrators.",
-    icon: BarChart3,
+      "স্কুল নোটিশ দ্রুত parent/guardian communication-ready flow.",
+    icon: MessageSquareText,
   },
   {
-    title: "Secure by Design",
+    title: "Secure & Audit-ready",
     description:
-      "Role-aware access controls and audit-ready actions across critical workflows.",
+      "Role-based access এবং ট্র্যাকযোগ্য action history.",
     icon: ShieldCheck,
   },
 ];
 
 export const roleHighlights = [
   {
-    role: "Administrators",
-    outcome: "Daily finance + attendance snapshot with urgent actions first.",
+    role: "Head Teacher",
+    outcome: "Attendance summary + print-ready register in minutes.",
   },
   {
-    role: "Teachers",
-    outcome: "Fast class workflows for attendance, grades, and announcements.",
+    role: "Office Staff",
+    outcome: "Student admission data entry with govt primary format.",
   },
   {
-    role: "Families",
-    outcome: "Clear view of progress, fees, schedules, and school communication.",
+    role: "Accounts",
+    outcome: "Preset fee setup, payment record, and receipt print without complexity.",
   },
 ];
 
 export const trustStats = [
-  { label: "Attendance Logged", value: "98.2%" },
-  { label: "Fee Collection Visibility", value: "100%" },
-  { label: "Average Daily Active Staff", value: "87%" },
+  { label: "Attendance Register", value: "A4 Ready" },
+  { label: "Fee Collection", value: "Receipt First" },
+  { label: "Target Segment", value: "Govt Primary" },
 ];
 
 export const pricingTiers = [
   {
-    name: "Starter",
+    name: "Pilot",
     price: "BDT 0",
-    cadence: "for pilot schools",
-    cta: "Start pilot",
+    cadence: "60-day pilot",
+    cta: "ডেমো দেখুন",
     href: "/auth/register",
-    features: ["Up to 300 students", "Core SIS + attendance", "Basic reporting"],
-    highlighted: false,
-  },
-  {
-    name: "Growth",
-    price: "BDT 12,000",
-    cadence: "per month",
-    cta: "Start growth plan",
-    href: "/auth/register",
-    features: [
-      "Up to 2,000 students",
-      "Finance + invoicing workflows",
-      "Advanced analytics dashboard",
-    ],
+    features: ["Class 1-5 workflow", "Attendance + register print", "Fee + receipt print"],
     highlighted: true,
   },
   {
-    name: "Enterprise",
-    price: "Custom",
-    cadence: "annual contract",
-    cta: "Talk to sales",
+    name: "School",
+    price: "BDT 5,000",
+    cadence: "per month",
+    cta: "শুরু করুন",
     href: "/auth/register",
-    features: ["Multi-campus support", "Priority onboarding", "Dedicated success team"],
+    features: ["Full office operations", "Bangla-first interface", "Priority onboarding"],
+    highlighted: false,
+  },
+  {
+    name: "District Rollout",
+    price: "Custom",
+    cadence: "annual",
+    cta: "Talk to team",
+    href: "/auth/register",
+    features: ["Multi-school rollout", "On-site training", "Dedicated support"],
     highlighted: false,
   },
 ];
@@ -112,38 +108,48 @@ export const pricingTiers = [
 export const testimonialItems = [
   {
     quote:
-      "ScholaOps gave our principal office a single dashboard for attendance, fees, and operations by 8:30 AM every day.",
-    author: "Farhana Rahman",
-    role: "Vice Principal, Northbridge Academy",
+      "আমাদের অফিসে attendance register print workflow-টাই সবচেয়ে বড় সুবিধা দিয়েছে।",
+    author: "Head Teacher, Pilot School",
+    role: "Govt Primary",
   },
   {
     quote:
-      "Teachers adopted it quickly because classroom workflows are simple and status-driven instead of menu-heavy.",
-    author: "Nafis Ahmed",
-    role: "Academic Coordinator, Eastfield School",
+      "ফি রশিদ প্রিন্ট এখন দ্রুত হয়, staff training time অনেক কমেছে।",
+    author: "Accounts Operator",
+    role: "Govt Primary",
   },
   {
     quote:
-      "Families now get faster answers because admin and finance data are finally connected.",
-    author: "Sadia Karim",
-    role: "School Operations Lead, Greenline International",
+      "Class 1-5 focused হওয়ায় unnecessary feature distraction নেই।",
+    author: "Assistant Teacher",
+    role: "Govt Primary",
   },
 ];
 
 export const heroHighlights = [
   {
-    label: "Live Tiles",
-    value: "Attendance, dues, tasks",
+    label: "Attendance Register",
+    value: "Bangla-first A4 Print",
     icon: CalendarCheck2,
   },
   {
-    label: "Role-aware Views",
-    value: "Admin, teacher, family",
+    label: "Monthly Fee & Receipt",
+    value: "Cash + SSLCommerz",
+    icon: CreditCard,
+  },
+  {
+    label: "Govt Primary Scope",
+    value: "Class 1-5 only",
     icon: Users,
   },
   {
-    label: "Audit-ready Actions",
-    value: "Secure, traceable workflows",
+    label: "SMS Notice",
+    value: "Parent communication ready",
     icon: MessageSquareText,
+  },
+  {
+    label: "Office Simplicity",
+    value: "Low training required",
+    icon: BarChart3,
   },
 ];

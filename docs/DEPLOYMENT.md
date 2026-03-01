@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This runbook describes how to deploy scholaOps safely.
+This runbook describes how to deploy Dhadash safely.
 
 ## 1) Deployment Targets
 
@@ -47,7 +47,7 @@ Also configure app runtime variables in Vercel project settings.
 ### Build image
 
 ```bash
-docker build -t scholaops:latest .
+docker build -t dhadash:latest .
 ```
 
 ### GitHub Actions container publishing (GHCR + Docker Hub)
@@ -58,7 +58,7 @@ Required repository secrets for Docker Hub push:
 
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN` (recommended: Docker Hub access token, not account password)
-- `DOCKERHUB_IMAGE` (optional override, e.g. `scholaops1` or `yusufdupsc1/scholaops1`)
+- `DOCKERHUB_IMAGE` (optional override, e.g. `dhadash1` or `yusufdupsc1/dhadash1`)
 
 Notes:
 

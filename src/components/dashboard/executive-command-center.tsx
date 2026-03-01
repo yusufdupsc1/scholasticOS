@@ -40,7 +40,7 @@ interface ExecutiveCommandCenterProps {
   roleMix: RoleMix;
   inactive: InactiveStats;
   sslCommerzConfigured: boolean;
-  stripeConfigured: boolean;
+  stripeConfigured?: boolean;
 }
 
 function StatusPill({
@@ -164,7 +164,9 @@ export function ExecutiveCommandCenter({
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <StatusPill label="SSLCommerz" active={sslCommerzConfigured} />
-              <StatusPill label="Stripe" active={stripeConfigured} />
+              {typeof stripeConfigured === "boolean" ? (
+                <StatusPill label="Stripe" active={stripeConfigured} />
+              ) : null}
             </div>
           </article>
 

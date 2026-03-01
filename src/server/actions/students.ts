@@ -12,6 +12,7 @@ import {
   type ProvisionedCredential,
 } from "@/server/services/user-provisioning";
 import { buildStudentVisibilityWhere, isPrivilegedOrStaff } from "@/lib/server/role-scope";
+import { isGovtPrimaryModeEnabled, isPrimaryGrade, PRIMARY_GRADES } from "@/lib/config";
 
 // ─── Schemas ───────────────────────────────
 const StudentSchema = z.object({
@@ -30,6 +31,11 @@ const StudentSchema = z.object({
   parentEmail: z.string().email().optional().or(z.literal("")),
   parentPhone: z.string().optional(),
   parentRelation: z.string().optional(),
+  fatherName: z.string().min(1, "Father name is required"),
+  motherName: z.string().min(1, "Mother name is required"),
+  guardianPhone: z.string().min(1, "Guardian phone is required"),
+  birthRegNo: z.string().optional(),
+  nidNo: z.string().optional(),
 });
 
 export type StudentFormData = z.infer<typeof StudentSchema>;
@@ -78,6 +84,19 @@ async function generateStudentId(institutionId: string): Promise<string> {
   return `STU-${year}-${String(count + 1).padStart(4, "0")}`;
 }
 
+async function validateGovtPrimaryClass(institutionId: string, classId?: string) {
+  if (!isGovtPrimaryModeEnabled() || !classId) return true;
+  const cls = await db.class.findFirst({
+    where: {
+      id: classId,
+      institutionId,
+    },
+    select: { grade: true },
+  });
+  if (!cls) return false;
+  return isPrimaryGrade(cls.grade);
+}
+
 // ─── CREATE ─────────────────────────────────
 export async function createStudent(
   formData: StudentFormData,
@@ -108,6 +127,10 @@ export async function createStudent(
     }
 
     const data = parsed.data;
+    const classAllowed = await validateGovtPrimaryClass(institutionId, data.classId);
+    if (!classAllowed) {
+      return { success: false, error: "Only Class 1 to 5 assignment is allowed in Govt Primary mode." };
+    }
     const studentId = await generateStudentId(institutionId);
 
     const student = await db.$transaction(async (tx) => {
@@ -140,6 +163,11 @@ export async function createStudent(
           city: data.city || null,
           country: data.country || null,
           classId: data.classId || null,
+          fatherName: data.fatherName,
+          motherName: data.motherName,
+          guardianPhone: data.guardianPhone,
+          birthRegNo: data.birthRegNo || null,
+          nidNo: data.nidNo || null,
           institutionId,
         },
       });
@@ -244,6 +272,10 @@ export async function updateStudent(
     }
 
     const data = parsed.data;
+    const classAllowed = await validateGovtPrimaryClass(institutionId, data.classId);
+    if (!classAllowed) {
+      return { success: false, error: "Only Class 1 to 5 assignment is allowed in Govt Primary mode." };
+    }
 
     await db.$transaction(async (tx) => {
       await tx.student.update({
@@ -258,6 +290,11 @@ export async function updateStudent(
           address: data.address || null,
           city: data.city || null,
           classId: data.classId || null,
+          fatherName: data.fatherName,
+          motherName: data.motherName,
+          guardianPhone: data.guardianPhone,
+          birthRegNo: data.birthRegNo || null,
+          nidNo: data.nidNo || null,
         },
       });
 
@@ -397,6 +434,7 @@ export async function getStudents({
 
   const where: Record<string, unknown> = {
     institutionId,
+    ...(isGovtPrimaryModeEnabled() ? { class: { grade: { in: [...PRIMARY_GRADES] } } } : {}),
     ...(await buildStudentVisibilityWhere({
       institutionId,
       role,
@@ -443,6 +481,11 @@ export async function getStudents({
       address: student.address,
       city: student.city,
       country: student.country,
+      fatherName: student.fatherName,
+      motherName: student.motherName,
+      guardianPhone: student.guardianPhone,
+      birthRegNo: student.birthRegNo,
+      nidNo: student.nidNo,
       classId: student.classId,
       status: student.status,
       createdAt: toIsoDate(student.createdAt),

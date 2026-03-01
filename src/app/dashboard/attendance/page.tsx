@@ -7,6 +7,7 @@ import { AttendanceClient } from "@/components/attendance/attendance-client";
 import { TableSkeleton } from "@/components/ui/skeletons";
 import { safeLoader } from "@/lib/server/safe-loader";
 import type { Metadata } from "next";
+import { isGovtPrimaryModeEnabled, PRIMARY_GRADES } from "@/lib/config";
 
 export const metadata: Metadata = { title: "Attendance" };
 export const dynamic = "force-dynamic";
@@ -32,7 +33,13 @@ export default async function AttendancePage({ searchParams }: PageProps) {
     "DASHBOARD_ATTENDANCE_CLASSES",
     () =>
       db.class.findMany({
-        where: { institutionId, isActive: true },
+        where: {
+          institutionId,
+          isActive: true,
+          ...(isGovtPrimaryModeEnabled()
+            ? { grade: { in: [...PRIMARY_GRADES] } }
+            : {}),
+        },
         select: { id: true, name: true, grade: true, section: true },
         orderBy: [{ grade: "asc" }, { section: "asc" }],
       }),

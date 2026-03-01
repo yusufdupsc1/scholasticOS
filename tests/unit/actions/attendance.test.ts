@@ -49,7 +49,10 @@ describe("Attendance Server Actions", () => {
   });
 
   it("marks attendance for entries", async () => {
-    (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "class-1" });
+    (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "class-1",
+      grade: "3",
+    });
     (db.student.count as ReturnType<typeof vi.fn>).mockResolvedValue(2);
 
     const result = await markAttendance({
@@ -91,6 +94,10 @@ describe("Attendance Server Actions", () => {
   });
 
   it("returns merged attendance for a class/date", async () => {
+    (db.class.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "class-1",
+      grade: "3",
+    });
     (db.student.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       { id: "student-1", studentId: "STU-1", firstName: "Hasib", lastName: "Bhuiyan", photo: null },
       { id: "student-2", studentId: "STU-2", firstName: "Ashik", lastName: "Biswas", photo: null },

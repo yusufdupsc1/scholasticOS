@@ -16,6 +16,7 @@ import {
   getTeacherClassScope,
   isPrivilegedOrStaff,
 } from "@/lib/server/role-scope";
+import { isGovtPrimaryModeEnabled, isPrimaryGrade, PRIMARY_GRADES } from "@/lib/config";
 
 const AttendanceEntrySchema = z.object({
   studentId: z.string(),
@@ -105,8 +106,12 @@ export async function markAttendance(
     // Verify class belongs to institution
     const cls = await db.class.findFirst({
       where: { id: data.classId, institutionId },
+      select: { id: true, grade: true },
     });
     if (!cls) return { success: false, error: "Class not found" };
+    if (isGovtPrimaryModeEnabled() && !isPrimaryGrade(cls.grade)) {
+      return { success: false, error: "Only Class 1 to 5 attendance is allowed in Govt Primary mode." };
+    }
 
     const studentIds = data.entries.map((entry) => entry.studentId);
     const validStudents = await db.student.count({
@@ -219,6 +224,16 @@ export async function getAttendanceForClass({
     allowedClassId = classId || "";
   }
 
+  const classAllowed = await db.class.findFirst({
+    where: {
+      id: classId,
+      institutionId,
+      ...(isGovtPrimaryModeEnabled() ? { grade: { in: [...PRIMARY_GRADES] } } : {}),
+    },
+    select: { id: true },
+  });
+  if (!classAllowed) return [];
+
   const [students, attendance] = await Promise.all([
     db.student.findMany({
       where: {
@@ -263,6 +278,7 @@ export async function getAttendanceSummary({
 
   let where: Record<string, unknown> = {
     institutionId,
+    ...(isGovtPrimaryModeEnabled() ? { class: { grade: { in: [...PRIMARY_GRADES] } } } : {}),
     date: {
       gte: new Date(startDate),
       lte: new Date(endDate),
@@ -356,6 +372,7 @@ export async function getAttendanceTrend({
 
   let where: Record<string, unknown> = {
     institutionId,
+    ...(isGovtPrimaryModeEnabled() ? { class: { grade: { in: [...PRIMARY_GRADES] } } } : {}),
     date: { gte: startDate },
   };
 
